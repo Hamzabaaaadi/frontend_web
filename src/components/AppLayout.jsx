@@ -6,13 +6,25 @@ import AuditeurHeader from "../pages/Auditeur/Header";
 import SuperAdminSidebar from "../pages/superadmin/Sidebar";
 import SuperAdminNavbar from "../pages/superadmin/Navbar";
 import { useAppRole } from "../AppRoleContext.jsx";
+import * as authService from "../services/authService";
 
 export default function AppLayout({ role, children }) {
   const { setRole } = useAppRole();
-  // Bouton déconnexion simple
+  
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.warn('Erreur lors de la déconnexion:', err);
+    } finally {
+      setRole("");
+    }
+  };
+
+  // Bouton déconnexion
   const logoutBtn = (
     <button
-      onClick={() => setRole("")}
+      onClick={handleLogout}
       style={{
         marginLeft: 16,
         padding: "6px 12px",

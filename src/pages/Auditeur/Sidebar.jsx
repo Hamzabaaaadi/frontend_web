@@ -29,13 +29,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="auditeur-section">
-        <div className="section-title">Analyse</div>
-        <Link to="#" className="auditeur-nav-link">
-          <span className="nav-icon">📊</span>
-          <span className="nav-label">Statistiques</span>
-        </Link>
-      </div>
     </aside>
   )
 }

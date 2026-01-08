@@ -1,83 +1,259 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useEffect, useState } from "react";
-import * as svc from '../../services/superAdminService'
-import Modal from '../../components/common/Modal'
+import * as svc from "../../services/superAdminService";
+import Modal from "../../components/common/Modal";
 
 export default function UsersManagement() {
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editUser, setEditUser] = useState(null)
-  const [form, setForm] = useState({ nom: '', prenom: '', email: '', role: 'AUDITEUR' })
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState(null);
 
+  const emptyForm = {
+    nom: "",
+    prenom: "",
+    email: "",
+    role: "COORDINATEUR",
+    estActif: true,
+
+    // champs Auditeur
+    specialite: "",
+    grade: "",
+    diplomes: [],
+    formations: [],
+    anciennete: "",
+    dateInscription: ""
+  };
+
+  const [form, setForm] = useState(emptyForm);
+
+  /* ================= LOAD USERS ================= */
   const load = async () => {
-    setLoading(true)
-    const list = await svc.listUsers()
-    setUsers(list)
-    setLoading(false)
-  }
+    setLoading(true);
+    setUsers(await svc.listUsers());
+    setLoading(false);
+  };
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load();
+  }, []);
 
-  const openCreate = () => { setEditUser(null); setForm({ nom: '', prenom: '', email: '', role: 'AUDITEUR' }); setModalOpen(true) }
-  const openEdit = (u) => { setEditUser(u); setForm({ nom: u.nom || '', prenom: u.prenom || '', email: u.email || '', role: u.role || 'AUDITEUR' }); setModalOpen(true) }
+  /* ================= OPEN CREATE ================= */
+  const openCreate = () => {
+    setEditUser(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
 
+  /* ================= OPEN EDIT ================= */
+  const openEdit = (u) => {
+    setEditUser(u);
+    setForm({
+      nom: u.nom || "",
+      prenom: u.prenom || "",
+      email: u.email || "",
+      role: u.role || "COORDINATEUR",
+      estActif: u.estActif ?? true,
+
+      specialite: u.specialite || "",
+      grade: u.grade || "",
+      diplomes: u.diplomes || [],
+      formations: u.formations || [],
+      anciennete: u.anciennete || "",
+      dateInscription: u.dateInscription || ""
+    });
+    setModalOpen(true);
+  };
+
+  /* ================= SAVE ================= */
   const handleSave = async () => {
-    if (editUser) {
-      await svc.updateUser(editUser.id, form)
-    } else {
-      await svc.createUser(form)
+    const payload = {
+      nom: form.nom,
+      prenom: form.prenom,
+      email: form.email,
+      role: form.role,
+      estActif: form.estActif
+    };
+
+    // ajouter les champs auditeur SEULEMENT si rôle = AUDITEUR
+    if (form.role === "AUDITEUR") {
+      Object.assign(payload, {
+        specialite: form.specialite,
+        grade: form.grade,
+        diplomes: form.diplomes,
+        formations: form.formations,
+        anciennete: form.anciennete || null,
+        dateInscription: form.dateInscription || null
+      });
     }
-    setModalOpen(false)
-    await load()
-  }
 
+    if (editUser) {
+      await svc.updateUser(editUser.id, payload);
+    } else {
+      // 🔥 UN SEUL ENDPOINT
+      await svc.register(payload); // POST /api/auth/register
+    }
+
+    setModalOpen(false);
+    await load();
+  };
+
+  /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cet utilisateur ?')) return
-    await svc.deleteUser(id)
-    await load()
-  }
+    if (!window.confirm("Supprimer cet utilisateur ?")) return;
+    await svc.deleteUser(id);
+    await load();
+  };
 
+  /* ================= RENDER ================= */
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0 }}>Gestion des utilisateurs</h1>
-          <div style={{ color: '#64748b' }}>Gérer les comptes, rôles et accès de la plateforme.</div>
+          <h1>Gestion des utilisateurs</h1>
+          <div style={{ color: "#64748b" }}>
+            Création et gestion des comptes utilisateurs
+          </div>
         </div>
-        <div>
-          <button onClick={openCreate} style={{ padding: '10px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700 }}>Créer un utilisateur</button>
-        </div>
+
+        {/* ✅ UN SEUL BOUTON */}
+        <button onClick={openCreate}>
+          + Créer un utilisateur
+        </button>
       </div>
 
-      {loading ? <div>Chargement…</div> : (
-        <div style={{ display: 'grid', gap: 10 }}>
+      {loading ? (
+        <div>Chargement...</div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
           {users.map(u => (
-            <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 12, background: '#fff', borderRadius: 10, boxShadow: '0 6px 18px rgba(2,6,23,0.04)' }}>
-              <div>
-                <div style={{ fontWeight: 800 }}>{u.nom} {u.prenom} <span style={{ color: '#94a3b8', fontWeight: 600 }}>({u.role || 'AUDITEUR'})</span></div>
-                <div style={{ color: '#6b7280' }}>{u.email} • {u.id}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => openEdit(u)} style={{ padding: '8px 10px', borderRadius: 8, background: '#f3f4f6', border: 'none' }}>Éditer</button>
-                <button onClick={() => handleDelete(u.id)} style={{ padding: '8px 10px', borderRadius: 8, background: '#fee2e2', border: 'none' }}>Supprimer</button>
+            <div key={u.id} style={{ padding: 12, background: "#fff", borderRadius: 8 }}>
+              <strong>{u.nom} {u.prenom} ({u.role})</strong>
+              <div>{u.email}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button onClick={() => openEdit(u)}>Éditer</button>
+                <button onClick={() => handleDelete(u.id)}>Supprimer</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Modal isOpen={modalOpen} title={editUser ? 'Modifier utilisateur' : 'Créer utilisateur'} onCancel={() => setModalOpen(false)} onConfirm={handleSave} confirmText={editUser ? 'Enregistrer' : 'Créer'}>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <input placeholder="Nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} />
-          <input placeholder="Prénom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} />
-          <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+      {/* ================= MODAL ================= */}
+      <Modal
+        isOpen={modalOpen}
+        title={editUser ? "Modifier utilisateur" : "Créer utilisateur"}
+        onCancel={() => setModalOpen(false)}
+        onConfirm={handleSave}
+        confirmText={editUser ? "Enregistrer" : "Créer"}
+      >
+        <div style={{ display: "grid", gap: 10 }}>
+          <input
+            placeholder="Nom"
+            value={form.nom}
+            onChange={(e) => setForm({ ...form, nom: e.target.value })}
+          />
+
+          <input
+            placeholder="Prénom"
+            value={form.prenom}
+            onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+          />
+
+          <input
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+
+          <select
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+          >
             <option value="AUDITEUR">Auditeur</option>
             <option value="COORDINATEUR">Coordinateur</option>
-            <option value="SUPERADMIN">Super Admin</option>
+            <option value="SUPER_ADMIN">Super Admin</option>
           </select>
+
+          {/* 🔥 CHAMPS CACHÉS JUSQU’À AUDITEUR */}
+          {form.role === "AUDITEUR" && (
+            <>
+              <input
+                placeholder="Spécialité"
+                value={form.specialite}
+                onChange={(e) => setForm({ ...form, specialite: e.target.value })}
+              />
+
+              <input
+                placeholder="Grade"
+                value={form.grade}
+                onChange={(e) => setForm({ ...form, grade: e.target.value })}
+              />
+
+              <input
+                type="number"
+                placeholder="Ancienneté"
+                value={form.anciennete}
+                onChange={(e) => setForm({ ...form, anciennete: e.target.value })}
+              />
+
+              <input
+                type="date"
+                value={form.dateInscription}
+                onChange={(e) => setForm({ ...form, dateInscription: e.target.value })}
+              />
+
+              <textarea
+                placeholder="Diplômes (séparés par ,)"
+                value={form.diplomes.join(",")}
+                onChange={(e) =>
+                  setForm({ ...form, diplomes: e.target.value.split(",").map(d => d.trim()) })
+                }
+              />
+            </>
+          )}
         </div>
       </Modal>
     </div>
-  )
+  );
 }
+
+
+
+
+
+

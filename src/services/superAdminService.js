@@ -14,23 +14,76 @@ function uid(prefix = '') {
 }
 
 export async function listUsers() {
-  return new Promise((res) => setTimeout(() => res([...users]), 200))
+  try {
+    const r = await fetch('/api/users')
+    if (!r.ok) throw new Error('Network')
+    return await r.json()
+  } catch (err) {
+    console.warn('superAdminService.listUsers fallback to mock', err.message)
+    return new Promise((res) => setTimeout(() => res([...users]), 200))
+  }
 }
 
 export async function createUser(payload) {
-  const u = { ...payload, id: uid('u') }
-  users = [u, ...users]
-  return new Promise((res) => setTimeout(() => res(u), 200))
+  try {
+    const r = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!r.ok) throw new Error('Network')
+    return await r.json()
+  } catch (err) {
+    console.warn('superAdminService.createUser fallback to mock', err.message)
+    const u = { ...payload, id: uid('u') }
+    users = [u, ...users]
+    return new Promise((res) => setTimeout(() => res(u), 200))
+  }
+}
+
+export async function register(payload) {
+  try {
+    const r = await fetch('http://localhost:5000/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!r.ok) throw new Error('Network')
+    return await r.json()
+  } catch (err) {
+    console.warn('superAdminService.register fallback to mock', err.message)
+    const u = { ...payload, id: uid('u') }
+    users = [u, ...users]
+    return new Promise((res) => setTimeout(() => res(u), 200))
+  }
 }
 
 export async function updateUser(id, payload) {
-  users = users.map((u) => (u.id === id ? { ...u, ...payload } : u))
-  return new Promise((res) => setTimeout(() => res(users.find((x) => x.id === id)), 200))
+  try {
+    const r = await fetch(`/api/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    if (!r.ok) throw new Error('Network')
+    return await r.json()
+  } catch (err) {
+    console.warn('superAdminService.updateUser fallback to mock', err.message)
+    users = users.map((u) => (u.id === id ? { ...u, ...payload } : u))
+    return new Promise((res) => setTimeout(() => res(users.find((x) => x.id === id)), 200))
+  }
 }
 
 export async function deleteUser(id) {
-  users = users.filter((u) => u.id !== id)
-  return new Promise((res) => setTimeout(() => res(true), 150))
+  try {
+    const r = await fetch(`/api/users/${id}`, { method: 'DELETE' })
+    if (!r.ok) throw new Error('Network')
+    return true
+  } catch (err) {
+    console.warn('superAdminService.deleteUser fallback to mock', err.message)
+    users = users.filter((u) => u.id !== id)
+    return new Promise((res) => setTimeout(() => res(true), 150))
+  }
 }
 
 export async function listVehicles() {
@@ -99,6 +152,7 @@ export async function getStats() {
 export default {
   listUsers,
   createUser,
+  register,
   updateUser,
   deleteUser,
   listVehicles,

@@ -1,24 +1,36 @@
 import React, { useState } from "react";
 import { useAppRole } from "../AppRoleContext.jsx";
+import * as authService from "../services/authService";
 
 export default function Login() {
   const { setRole } = useAppRole();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simple logique de rôle selon l'email
-    if (email === "coordinateur@demo.com" && password === "demo") {
-      setRole("coordinateur");
-    } else if (email === "auditeur@demo.com" && password === "demo") {
-      setRole("auditeur");
-    } else if (email === "superadmin@demo.com" && password === "demo") {
-      setRole("superadmin");
-    } else {
-      setError("Email ou mot de passe incorrect");
-      return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await authService.login(email, password);
+      
+      // L'API peut retourner le rôle dans response.role ou response.user.role
+      const userRole = response.role || response.user?.role || response.user?.role?.toLowerCase();
+      
+      if (userRole) {
+        // Normaliser le rôle (SUPERADMIN -> superadmin, etc.)
+        const normalizedRole = userRole.toLowerCase().replace('_', '');
+        setRole(normalizedRole);
+      } else {
+        setError("Rôle utilisateur non trouvé dans la réponse");
+      }
+    } catch (err) {
+      setError(err.message || "Email ou mot de passe incorrect");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,8 +59,21 @@ export default function Login() {
           />
         </div>
         {error && <div style={{ color: "#ef4444", marginBottom: 12 }}>{error}</div>}
-        <button type="submit" style={{ width: "100%", padding: 10, borderRadius: 6, background: "#2563eb", color: "#fff", border: "none", fontWeight: 600 }}>
-          Se connecter
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{ 
+            width: "100%", 
+            padding: 10, 
+            borderRadius: 6, 
+            background: loading ? "#94a3b8" : "#2563eb", 
+            color: "#fff", 
+            border: "none", 
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer"
+          }}
+        >
+          {loading ? "Connexion..." : "Se connecter"}
         </button>
         <div style={{ marginTop: 16, color: "#64748b", fontSize: 13 }}>
           <div>Demo coordinateur: coordinateur@demo.com / demo</div>
