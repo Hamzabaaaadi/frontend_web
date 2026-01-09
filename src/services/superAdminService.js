@@ -13,9 +13,20 @@ function uid(prefix = '') {
   return prefix + Math.random().toString(36).slice(2, 9)
 }
 
+function authHeaders() {
+  try {
+    const basic = localStorage.getItem('basicAuth')
+    return basic ? { Authorization: `Basic ${basic}` } : {}
+  } catch (e) {
+    return {}
+  }
+}
+
 export async function listUsers() {
   try {
-    const r = await fetch('/api/users')
+    const r = await fetch('http://localhost:5000/api/users/all', {
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    })
     if (!r.ok) throw new Error('Network')
     return await r.json()
   } catch (err) {
@@ -26,12 +37,17 @@ export async function listUsers() {
 
 export async function createUser(payload) {
   try {
-    const r = await fetch('/api/users', {
+    const r = await fetch('http://localhost:5000/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload)
     })
-    if (!r.ok) throw new Error('Network')
+    if (!r.ok) {
+      let body = null
+      try { body = await r.text() } catch (e) { /* ignore */ }
+      console.error('createUser HTTP error', r.status, body)
+      throw new Error('Network')
+    }
     return await r.json()
   } catch (err) {
     console.warn('superAdminService.createUser fallback to mock', err.message)
@@ -48,7 +64,12 @@ export async function register(payload) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
-    if (!r.ok) throw new Error('Network')
+    if (!r.ok) {
+      let body = null
+      try { body = await r.text() } catch (e) { /* ignore */ }
+      console.error('register HTTP error', r.status, body)
+      throw new Error('Network')
+    }
     return await r.json()
   } catch (err) {
     console.warn('superAdminService.register fallback to mock', err.message)
@@ -60,12 +81,17 @@ export async function register(payload) {
 
 export async function updateUser(id, payload) {
   try {
-    const r = await fetch(`/api/users/${id}`, {
+    const r = await fetch(`http://localhost:5000/api/users/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload)
     })
-    if (!r.ok) throw new Error('Network')
+    if (!r.ok) {
+      let body = null
+      try { body = await r.text() } catch (e) { /* ignore */ }
+      console.error('updateUser HTTP error', r.status, body)
+      throw new Error('Network')
+    }
     return await r.json()
   } catch (err) {
     console.warn('superAdminService.updateUser fallback to mock', err.message)
@@ -76,8 +102,13 @@ export async function updateUser(id, payload) {
 
 export async function deleteUser(id) {
   try {
-    const r = await fetch(`/api/users/${id}`, { method: 'DELETE' })
-    if (!r.ok) throw new Error('Network')
+    const r = await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE', headers: { ...authHeaders() } })
+    if (!r.ok) {
+      let body = null
+      try { body = await r.text() } catch (e) { /* ignore */ }
+      console.error('deleteUser HTTP error', r.status, body)
+      throw new Error('Network')
+    }
     return true
   } catch (err) {
     console.warn('superAdminService.deleteUser fallback to mock', err.message)
@@ -88,7 +119,7 @@ export async function deleteUser(id) {
 
 export async function listVehicles() {
   try {
-    const r = await fetch('/api/vehicles')
+    const r = await fetch('http://localhost:5000/api/vehicles', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!r.ok) throw new Error('Network')
     return await r.json()
   } catch (err) {
@@ -99,9 +130,9 @@ export async function listVehicles() {
 
 export async function createVehicle(payload) {
   try {
-    const r = await fetch('/api/vehicles', {
+    const r = await fetch('http://localhost:5000/api/vehicles', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload)
     })
     if (!r.ok) throw new Error('Network')
@@ -116,9 +147,9 @@ export async function createVehicle(payload) {
 
 export async function updateVehicle(id, payload) {
   try {
-    const r = await fetch(`/api/vehicles/${id}`, {
+    const r = await fetch(`http://localhost:5000/api/vehicles/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload)
     })
     if (!r.ok) throw new Error('Network')
@@ -132,7 +163,7 @@ export async function updateVehicle(id, payload) {
 
 export async function deleteVehicle(id) {
   try {
-    const r = await fetch(`/api/vehicles/${id}`, { method: 'DELETE' })
+    const r = await fetch(`http://localhost:5000/api/vehicles/${id}`, { method: 'DELETE', headers: { ...authHeaders() } })
     if (!r.ok) throw new Error('Network')
     return true
   } catch (err) {
@@ -143,10 +174,24 @@ export async function deleteVehicle(id) {
 }
 
 export async function getStats() {
-  const totalUsers = users.length
-  const totalVehicles = vehicles.length
-  const vehiclesAvailable = vehicles.filter((v) => v.disponible).length
-  return new Promise((res) => setTimeout(() => res({ totalUsers, totalVehicles, vehiclesAvailable }), 180))
+ 
+
+  // Fallback: aggregate from available endpoints or mock data
+  try {
+    const [uResp, vResp] = await Promise.all([listUsers(), listVehicles()])
+    const usersList = Array.isArray(uResp) ? uResp : (uResp && Array.isArray(uResp.users) ? uResp.users : [])
+    const vehiclesList = Array.isArray(vResp) ? vResp : (vResp && Array.isArray(vResp.vehicles) ? vResp.vehicles : (vResp && Array.isArray(vResp.vehicules) ? vResp.vehicules : []))
+    const totalUsers = usersList.length
+    const totalVehicles = vehiclesList.length
+    const vehiclesAvailable = vehiclesList.filter((v) => v.estDisponible || v.disponible).length
+    return { totalUsers, totalVehicles, vehiclesAvailable }
+  } catch (err) {
+    // final fallback to mock in-memory data
+    const totalUsers = users.length
+    const totalVehicles = vehicles.length
+    const vehiclesAvailable = vehicles.filter((v) => v.disponible || v.estDisponible).length
+    return new Promise((res) => setTimeout(() => res({ totalUsers, totalVehicles, vehiclesAvailable }), 180))
+  }
 }
 
 export default {

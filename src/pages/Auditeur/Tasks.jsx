@@ -371,7 +371,7 @@ export default function Tasks() {
                   return (
                   <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.id}</div>
-                    <div style={{ color: '#0b556f' }}>{a.tacheId}</div>
+                    <div style={{ color: '#0b556f' }}>{a.mon}</div>
                     <div style={{ color: '#0f172a' }}>{audLabel}</div>
                     <div style={{ color: '#6b7280' }}>{a.dateAffectation}</div>
                     <div>

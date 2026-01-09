@@ -23,21 +23,7 @@ export default function AppLayout({ role, children }) {
 
   // Bouton déconnexion
   const logoutBtn = (
-    <button
-      onClick={handleLogout}
-      style={{
-        marginLeft: 16,
-        padding: "6px 12px",
-        borderRadius: 6,
-        border: "none",
-        background: "#ef4444",
-        color: "#fff",
-        fontWeight: 600,
-        cursor: "pointer",
-      }}
-    >
-      Déconnexion
-    </button>
+    <button onClick={handleLogout} className="logout-btn">Déconnexion</button>
   );
   return (
     <div className="layout">
@@ -49,13 +35,7 @@ export default function AppLayout({ role, children }) {
         <AuditeurSidebar />
       )}
       <div className="main-content">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {role === "coordinateur" ? (
             <CoordinatorNavbar />
           ) : role === "superadmin" ? (

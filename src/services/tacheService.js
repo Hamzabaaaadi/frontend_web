@@ -30,8 +30,17 @@ const mockTasks = [
 ]
 
 export async function getTasks() {
+  function authHeaders() {
+    try {
+      const basic = localStorage.getItem('basicAuth')
+      return basic ? { Authorization: `Basic ${basic}` } : {}
+    } catch (e) {
+      return {}
+    }
+  }
+
   try {
-    const res = await fetch('/api/taches')
+    const res = await fetch('http://localhost:5000/api/taches', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network response was not ok')
     const data = await res.json()
     return data
@@ -45,8 +54,17 @@ export async function getTasks() {
 export default { getTasks }
 
 export async function getTaskById(id) {
+  function authHeaders() {
+    try {
+      const basic = localStorage.getItem('basicAuth')
+      return basic ? { Authorization: `Basic ${basic}` } : {}
+    } catch (e) {
+      return {}
+    }
+  }
+
   try {
-    const res = await fetch(`/api/taches/${id}`)
+    const res = await fetch(`http://localhost:5000/api/taches/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network response was not ok')
     return await res.json()
   } catch (err) {

@@ -1,40 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useEffect, useState } from "react";
 import * as svc from "../../services/superAdminService";
+import './dashboard.css'
 import Modal from "../../components/common/Modal";
 
 export default function UsersManagement() {
@@ -48,6 +14,7 @@ export default function UsersManagement() {
     prenom: "",
     email: "",
     role: "COORDINATEUR",
+    password: "",
     estActif: true,
 
     // champs Auditeur
@@ -64,8 +31,20 @@ export default function UsersManagement() {
   /* ================= LOAD USERS ================= */
   const load = async () => {
     setLoading(true);
-    setUsers(await svc.listUsers());
-    setLoading(false);
+    try {
+      const response = await svc.listUsers(); // Assuming this fetches the users
+      if (response && Array.isArray(response.users)) {
+        setUsers(response.users);
+      } else {
+        console.error('Invalid response format:', response);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -122,10 +101,12 @@ export default function UsersManagement() {
     }
 
     if (editUser) {
-      await svc.updateUser(editUser.id, payload);
+      const id = editUser._id || editUser.id;
+      await svc.updateUser(id, payload);
     } else {
-      // 🔥 UN SEUL ENDPOINT
-      await svc.register(payload); // POST /api/auth/register
+      // include password for registration (use temp default if empty)
+      const regPayload = { ...payload, password: form.password || 'TempPass123!' };
+      await svc.register(regPayload); // POST /api/auth/register
     }
 
     setModalOpen(false);
@@ -141,35 +122,35 @@ export default function UsersManagement() {
 
   /* ================= RENDER ================= */
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+    <div className="sa-dashboard">
+      <div className="sa-header">
         <div>
-          <h1>Gestion des utilisateurs</h1>
-          <div style={{ color: "#64748b" }}>
-            Création et gestion des comptes utilisateurs
-          </div>
+          <h1 className="sa-title">Gestion des utilisateurs</h1>
+          <div className="sa-sub">Création et gestion des comptes utilisateurs</div>
         </div>
 
-        {/* ✅ UN SEUL BOUTON */}
-        <button onClick={openCreate}>
-          + Créer un utilisateur
-        </button>
+        <div>
+          <button onClick={openCreate} className="btn btn-primary">+ Créer un utilisateur</button>
+        </div>
       </div>
 
       {loading ? (
         <div>Chargement...</div>
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
-          {users.map(u => (
-            <div key={u.id} style={{ padding: 12, background: "#fff", borderRadius: 8 }}>
-              <strong>{u.nom} {u.prenom} ({u.role})</strong>
-              <div>{u.email}</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button onClick={() => openEdit(u)}>Éditer</button>
-                <button onClick={() => handleDelete(u.id)}>Supprimer</button>
+          {Array.isArray(users) && users.map(u => {
+            const id = u._id || u.id
+            return (
+              <div key={id} className="sa-card">
+                <strong>{u.nom} {u.prenom} ({u.role})</strong>
+                <div>{u.email}</div>
+                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                  <button onClick={() => openEdit(u)} className="btn btn-ghost btn-sm">Éditer</button>
+                  <button onClick={() => handleDelete(id)} className="btn btn-danger btn-sm">Supprimer</button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

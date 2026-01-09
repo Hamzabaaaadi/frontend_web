@@ -5,8 +5,17 @@ const mockAuditeurs = [
 ]
 
 export async function getAuditeurs() {
+  function authHeaders() {
+    try {
+      const basic = localStorage.getItem('basicAuth')
+      return basic ? { Authorization: `Basic ${basic}` } : {}
+    } catch (e) {
+      return {}
+    }
+  }
+
   try {
-    const res = await fetch('/api/users?role=AUDITEUR')
+    const res = await fetch('http://localhost:5000/api/users?role=AUDITEUR', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network response was not ok')
     return await res.json()
   } catch (err) {
