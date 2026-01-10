@@ -18,6 +18,7 @@ const TasksAssignment = () => {
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [auditeurs, setAuditeurs] = useState([])
+  const [auditeursLoading, setAuditeursLoading] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Load tasks and auditeurs on mount
@@ -29,7 +30,8 @@ const TasksAssignment = () => {
       try {
         const tResp = await coordSvc.getTasks()
         const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-        if (mounted) setTasks(list)
+        const normalized = (list || []).map(normalizeTask)
+        if (mounted) setTasks(normalized)
         // load auditeurs
         try {
           const aResp = await userSvc.getAuditeurs()
@@ -54,7 +56,7 @@ const TasksAssignment = () => {
           await coordSvc.updateTask(id, { ...task, mode: editingTask.mode })
           const tResp = await coordSvc.getTasks()
           const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-          setTasks(list)
+          setTasks((list || []).map(normalizeTask))
           setEditingTask(null)
           alert('Tâche modifiée avec succès !')
         } else {
@@ -62,7 +64,7 @@ const TasksAssignment = () => {
           await coordSvc.createTask(payload)
           const tResp = await coordSvc.getTasks()
           const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-          setTasks(list)
+          setTasks((list || []).map(normalizeTask))
           alert('Tâche créée avec succès !')
         }
       } catch (err) {
@@ -74,11 +76,28 @@ const TasksAssignment = () => {
     })()
   };
 
+  const normalizeTask = (t) => {
+    return {
+      _id: t._id || t.id || t._id,
+      id: t.id || t._id,
+      name: t.name || t.titre || t.title || '',
+      specialties: Array.isArray(t.specialties) ? t.specialties : (t.specialty ? [t.specialty] : []),
+      grades: Array.isArray(t.grades) ? t.grades : (t.grade ? [t.grade] : []),
+      slots: typeof t.slots === 'number' ? t.slots : (t.places || 1),
+      mode: t.mode || 'Manuel',
+      affectations: Array.isArray(t.affectations) ? t.affectations : [],
+      ...t,
+    }
+  }
+
   const generateAutoSuggestions = (task) => {
     const pool = (auditeurs && auditeurs.length) ? auditeurs : auditeursData
+    const tSpecialties = Array.isArray(task.specialties) ? task.specialties : (task.specialty ? [task.specialty] : [])
+    const tGrades = Array.isArray(task.grades) ? task.grades : (task.grade ? [task.grade] : [])
+
     const compatibleAuditeurs = pool.filter(auditeur => {
-      const specialtyMatch = task.specialties.some(s => auditeur.specialty.includes(s.split(' ')[1]));
-      const gradeMatch = task.grades.includes(auditeur.grade);
+      const specialtyMatch = tSpecialties.length > 0 && tSpecialties.some(s => (auditeur.specialty || '').toString().toLowerCase().includes(s.toString().split(' ')[1] ? s.toString().split(' ')[1].toLowerCase() : s.toString().toLowerCase()));
+      const gradeMatch = tGrades.length > 0 && tGrades.includes(auditeur.grade);
       return specialtyMatch || gradeMatch;
     });
 
@@ -88,7 +107,7 @@ const TasksAssignment = () => {
       score: Math.floor(Math.random() * 20) + 80,
       specialty: auditeur.specialty,
       grade: auditeur.grade,
-    })).sort((a, b) => b.score - a.score).slice(0, task.slots);
+    })).sort((a, b) => b.score - a.score).slice(0, task.slots || 1);
   };
 
   const handleAffect = (task) => {
@@ -97,10 +116,13 @@ const TasksAssignment = () => {
       setSelectedAuditeurs([]);
       // fetch auditeurs list from backend (falls back to previous local data)
       try {
-        const aResp = await coordSvc.getAuditeurs()
+        setAuditeursLoading(true)
+        // use userSvc to get auditeurs from API and return normalized shape
+        const aResp = await userSvc.getAuditeurs()
         const alist = Array.isArray(aResp) ? aResp : (aResp && Array.isArray(aResp.users) ? aResp.users : [])
         setAuditeurs(alist)
       } catch (e) { console.warn('handleAffect getAuditeurs failed', e.message) }
+      finally { setAuditeursLoading(false) }
 
       if (task.mode === "Automatisé (IA)") {
         const suggestions = generateAutoSuggestions(task);
@@ -129,7 +151,7 @@ const TasksAssignment = () => {
 
     setTasks(tasks.map(t => 
       (t._id || t.id) === (selectedTask._id || selectedTask.id)
-        ? { ...t, affectations: [...t.affectations, ...newAffectations] }
+        ? { ...t, affectations: [...(t.affectations || []), ...newAffectations] }
         : t
     ));
 
@@ -150,7 +172,7 @@ const TasksAssignment = () => {
         }
         const tResp = await coordSvc.getTasks()
         const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-        setTasks(list)
+        setTasks((list || []).map(normalizeTask))
         setShowAffectModal(false)
         alert('Affectations envoyées pour validation !')
       } catch (err) {
@@ -167,7 +189,7 @@ const TasksAssignment = () => {
         await coordSvc.validateAffectation(affId)
         const tResp = await coordSvc.getTasks()
         const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-        setTasks(list)
+        setTasks((list || []).map(normalizeTask))
         alert('Affectation validée par le coordinateur !')
       } catch (err) {
         console.error('validateAffectation error', err)
@@ -193,8 +215,9 @@ const TasksAssignment = () => {
   };
 
   const toggleAuditeur = (id) => {
+    const sid = String(id)
     setSelectedAuditeurs(prev =>
-      prev.includes(id) ? prev.filter(aid => aid !== id) : [...prev, id]
+      prev.includes(sid) ? prev.filter(aid => aid !== sid) : [...prev, sid]
     );
   };
 
@@ -364,7 +387,7 @@ const TasksAssignment = () => {
                         <div className="suggestion-score">{sug.score}%</div>
                         <div className="suggestion-info">
                           <div className="suggestion-name">{sug.auditeurName}</div>
-                          <div className="suggestion-details">{sug.specialty} • Grade {sug.grade}</div>
+                          <div className="suggestion-details">{/* only name displayed per request */}</div>
                         </div>
                         <div className="ai-recommendation">Recommandé par IA</div>
                       </div>
@@ -376,30 +399,40 @@ const TasksAssignment = () => {
               <div className="auditeurs-selection">
                 <h4>👥 Tous les auditeurs disponibles</h4>
                 <div className="auditeurs-grid">
-                  {(auditeurs && auditeurs.length ? auditeurs : auditeursData).map(auditeur => (
-                    <div
-                      key={auditeur.id}
-                      className={`auditeur-card ${selectedAuditeurs.includes(auditeur.id) ? "selected" : ""}`}
-                      onClick={() => toggleAuditeur(auditeur.id)}
-                    >
-                      <div className="auditeur-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selectedAuditeurs.includes(auditeur.id)}
-                          onChange={() => {}}
-                          className="checkbox-input"
-                        />
-                      </div>
-                      <div className="auditeur-avatar">
-                        <span>{((auditeur.name || '').toString().split(" ").map(n => n[0]).join(""))}</span>
-                      </div>
-                      <div className="auditeur-info">
-                        <div className="auditeur-name">{auditeur.name}</div>
-                        <div className="auditeur-details">{auditeur.specialty} • Grade {auditeur.grade}</div>
-                      </div>
-                    </div>
-                  ))}
+                    {(auditeurs && auditeurs.length ? auditeurs : auditeursData).map((auditeur, idx) => {
+                      const audId = String(auditeur.id || auditeur.userId || auditeur._id || idx)
+                      const displayName = (auditeur && (auditeur.name || auditeur.prenom || auditeur.nom))
+                        ? (auditeur.name || `${auditeur.prenom || ''} ${auditeur.nom || ''}`.trim())
+                        : (auditeur.userId || auditeur.id || `Auditeur ${idx+1}`)
+                      const checked = selectedAuditeurs.includes(audId)
+                      return (
+                        <div
+                          key={audId}
+                          className={`auditeur-card ${checked ? "selected" : ""}`}
+                          onClick={() => toggleAuditeur(audId)}
+                        >
+                          <div className="auditeur-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {}}
+                              className="checkbox-input"
+                            />
+                          </div>
+                          <div className="auditeur-avatar">
+                            <span>{((displayName || '').toString().split(" ").map(n => n[0]).join(""))}</span>
+                          </div>
+                          <div className="auditeur-info">
+                            <div className="auditeur-name">{displayName}</div>
+                            <div className="auditeur-details">{/* only name/prenom — no grade shown */}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
+                  {auditeursLoading && (
+                    <div className="auditeurs-loading">Chargement des auditeurs…</div>
+                  )}
               </div>
             </div>
 

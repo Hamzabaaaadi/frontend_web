@@ -171,9 +171,21 @@ export async function getAffectations() {
 
 export async function getAuditeurs() {
   try {
-    const r = await fetch('http://localhost:5000/api/users/auditeurs', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await fetch('http://localhost:5000/api/auditeurs', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const data = await r.json()
+    const arr = Array.isArray(data) ? data : (data && Array.isArray(data.auditeurs) ? data.auditeurs : (data && Array.isArray(data.users) ? data.users : []))
+    // normalize similar to userService
+    return arr.map(u => ({
+      id: String(u._id || u.id || u.userId || ''),
+      userId: u.userId || (u.user && (u.user._id || u.user.id)) || '',
+      prenom: u.prenom || u.firstName || '',
+      nom: u.nom || u.lastName || u.name || '',
+      name: u.name || ((u.prenom || u.nom) ? `${u.prenom || ''} ${u.nom || ''}`.trim() : ''),
+      specialty: u.specialite || u.specialty || '',
+      grade: u.grade || u.level || '',
+      email: u.email || ''
+    }))
   } catch (err) {
     console.warn('cordinateurServices.getAuditeurs fallback', err.message)
     return []

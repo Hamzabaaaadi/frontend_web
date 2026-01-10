@@ -23,7 +23,7 @@ const TaskTable = ({ tasks, onAffect, onEdit, onDelete }) => (
         </thead>
         <tbody>
           {tasks.map((task) => (
-            <tr key={task.id}>
+            <tr key={task._id || task.id}>
               <td>
                 <div className="task-name-cell">
                   <strong>{task.name}</strong>
