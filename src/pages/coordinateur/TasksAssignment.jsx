@@ -136,6 +136,17 @@ const TasksAssignment = () => {
         setAiSuggestions([]);
         setShowAffectModal(true);
       }
+      // After opening the affect modal, scroll it (or page bottom) into view
+      setTimeout(() => {
+        const modalEl = document.querySelector('.affect-modal')
+        const formContainer = document.querySelector('.form-container')
+        const target = modalEl || formContainer
+        if (target && typeof target.scrollIntoView === 'function') {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        } else {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+        }
+      }, 150)
     })()
   };
 

@@ -11,7 +11,7 @@ function authHeaders() {
 
 export async function acceptAffectation(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/accept`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/accept`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network error')
     return await res.json()
   } catch (err) {
@@ -23,7 +23,7 @@ export async function acceptAffectation(affectationId) {
 export async function refuseAffectation(affectationId, motif = '') {
   try {
     const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/refuse`, {
-      method: 'POST',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ motif })
     })
@@ -159,10 +159,11 @@ export async function getDelegations() {
 }
 
 function normalizeArray(data) {
+  console.log("data received 1: ", data.delegations);
   if (!data) return []
   if (Array.isArray(data)) return data
   if (data.affectations && Array.isArray(data.affectations)) return data.affectations
-  if (data.delegations && Array.isArray(data.delegations)) return data.delegations
+  if (data.delegations && Array.isArray(data.delegations)) return data.delegations 
   if (data.data && Array.isArray(data.data)) return data.data
   if (typeof data === 'object') {
     for (const k of Object.keys(data)) {
@@ -174,7 +175,7 @@ function normalizeArray(data) {
 
 export async function acceptDelegation(delegationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/accept`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/accepter`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network error')
     return await res.json()
   } catch (err) {
@@ -192,7 +193,7 @@ export async function acceptDelegation(delegationId) {
 
 export async function refuseDelegation(delegationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/refuse`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/refuser`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network error')
     return await res.json()
   } catch (err) {

@@ -22,7 +22,11 @@ export default function Tasks() {
     let mounted = true
     // load affectations (not tasks) to match domain model
     getAffectations().then((data) => {
-      if (mounted) setTasks(data)
+      if (mounted) {
+        // normalize server shape: keep original object for details but add an `id` prop
+        const normalized = Array.isArray(data) ? data.map((d) => ({ ...d, id: d._id })) : []
+        setTasks(normalized)
+      }
     }).catch(() => {
       if (mounted) setTasks([])
     }).finally(() => mounted && setLoading(false))
@@ -73,7 +77,8 @@ export default function Tasks() {
     const aff = tasks.find((x) => x.id === id)
     setModalType('delegate')
     setModalTaskId(id)
-    setModalFromInput(aff ? aff.auditeurId || '' : '')
+    // if auditeurId is an object, prefill with its _id
+    setModalFromInput(aff ? (aff.auditeurId && typeof aff.auditeurId === 'object' ? (aff.auditeurId._id || '') : aff.auditeurId || '') : '')
     setModalInput('')
     setModalJustification('')
     setModalStatut('EN_ATTENTE')
@@ -83,9 +88,32 @@ export default function Tasks() {
   const loadDelegations = async () => {
     try {
       const data = await getDelegations()
-      setDelegations(data || [])
+      const list = Array.isArray(data)
+        ? data.map((d) => ({
+            ...d,
+            id: d._id || d.id,
+      
+            // garder l'objet COMPLET
+            affectationOriginale: d.affectationOriginale,
+      
+            // champs utiles dérivés (optionnels)
+            affectationOriginaleId: d.affectationOriginale?._id || null,
+            tacheId: d.affectationOriginale?.tacheId || null,
+      
+            auditeurPropose: d.auditeurPropose,
+            auditeurProposeLabel:
+              d.auditeurPropose && typeof d.auditeurPropose === 'object'
+                ? `${d.auditeurPropose.nom || ''} ${d.auditeurPropose.prenom || ''}`.trim()
+                : '',
+      
+            auditeurInitial: d.auditeurInitial,
+          }))
+        : []
+      console.log("Loaded delegations: ", list);
+      setDelegations(list)
     } catch (err) {
       console.error(err)
+      setDelegations([])
     }
   }
 
@@ -103,7 +131,24 @@ export default function Tasks() {
     setTaskDetails(null)
     setTaskDetailsLoading(true)
     try {
-      const data = await getTaskById(tacheId)
+      // If we already have the task object embedded in `tasks`, use it to avoid a failing API call
+      let data = null
+      if (!tacheId) {
+        data = null
+      } else {
+        // if tacheId is an object, use it
+        if (typeof tacheId === 'object') data = tacheId
+        // otherwise try to find it inside loaded affectations
+        if (!data) {
+          const byAff = tasks.find((a) => (a.tacheId && (a.tacheId._id === tacheId || a.tacheId.id === tacheId)))
+          if (byAff && typeof byAff.tacheId === 'object') data = byAff.tacheId
+        }
+      }
+
+      if (!data) {
+        data = await getTaskById(tacheId)
+      }
+
       setTaskDetails(data)
       setModalType('details')
       setModalOpen(true)
@@ -166,16 +211,21 @@ export default function Tasks() {
       <section className="delegations-section">
         <h4>Propositions de délégation</h4>
         <div className="delegations-list">
+          
           {delegations.length === 0 && <div className="muted">Aucune proposition</div>}
           {delegations.map((d) => (
             <div key={d.id} className="delegation-card" role="button" tabIndex={0} onClick={() => openDelegationDetails(d)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDelegationDetails(d) } }}>
               <div className="delegation-main">
                 <div className="delegation-title">{d.id} — <span className="badge">{d.statut}</span></div>
-                <div className="delegation-sub">Affectation: {d.affectationOriginale} • Proposé à: {d.auditeurPropose}</div>
+                <div className="delegation-sub">Affectation: {d.affectationOriginale?._id} • Proposé à: {d.auditeurPropose.nom + " " + d.auditeurPropose.prenom}</div>
                 <div className="delegation-just">{d.justification || '-'}</div>
               </div>
               <div className="delegation-actions">
-                <button className="btn primary" onClick={(e) => { e.stopPropagation(); const aff = tasks.find(t => t.id === d.affectationOriginale); if (aff) { openDetails(aff.tacheId) } else { alert('Tâche introuvable') } }}>Voir tâche</button>
+                {/* <button className="btn primary" onClick={(e) => { e.stopPropagation(); const aff = tasks.find(t => t.id === d.affectationOriginale); if (aff) { const tId = aff.tacheId && typeof aff.tacheId === 'object' ? (aff.tacheId._id || aff.tacheId.id) : aff.tacheId;console.log("tesy",tId); openDetails(tId) } else { alert('Tâche introuvable') } }}>Voir tâche</button> */}
+                <button className="btn primary" onClick={(e) => { e.stopPropagation();const tacheId = typeof d.affectationOriginale.tacheId === 'string' ? (d.affectationOriginale.tacheId) : null; tacheId ? openDetails(tacheId) : alert('Tâche introuvable') }}>
+                  Voir tâche
+                </button>
+
                 {d.statut === 'EN_ATTENTE' && (
                   <>
                     <button className="btn success" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await acceptDelegation(d.id); await getAffectations().then((r)=>setTasks(r)); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Accepter</button>
@@ -189,8 +239,16 @@ export default function Tasks() {
       </section>
       <h3>Tâches</h3>
       <div className="tasks-grid">
-        {tasks.map((t) => (
-          <article key={t.id} className="task-card" tabIndex={0} role="button" onClick={() => openDetails(t.tacheId)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(t.tacheId); } }}>
+        {tasks.map((t) => {
+          const tacheIdVal = t.tacheId && typeof t.tacheId === 'object' ? (t.tacheId._id || t.tacheId.id) : t.tacheId
+          const tacheLabel = t.tacheId && typeof t.tacheId === 'object' ? (t.tacheId.nom || t.tacheId._id || JSON.stringify(t.tacheId)) : t.tacheId
+          const audIdVal = t.auditeurId && typeof t.auditeurId === 'object' ? (t.auditeurId._id || t.auditeurId.id) : t.auditeurId
+          const audFromList = auditeurs.find(u => u.id === audIdVal || u._id === audIdVal)
+          const audLabel = t.auditeurId && typeof t.auditeurId === 'object'
+            ? `${t.auditeurId.nom || ''} ${t.auditeurId.prenom || ''} (${audIdVal || ''})`.trim()
+            : (audFromList ? `${audFromList.nom} ${audFromList.prenom} (${audFromList.id || audFromList._id})` : t.auditeurId)
+          return (
+          <article key={t.id} className="task-card" tabIndex={0} role="button" onClick={() => openDetails(tacheIdVal)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(tacheIdVal); } }}>
             <div className="task-card-body">
               <div className="task-card-head">
                 <strong className="task-title">Affectation: {t.id}</strong>
@@ -200,7 +258,7 @@ export default function Tasks() {
                 </div>
               </div>
 
-              <div className="task-desc">Tâche: {t.tacheId} • Auditeur: {t.auditeurId}</div>
+              <div className="task-desc">Tâche: {tacheLabel} • Auditeur: {audLabel}</div>
               {t.justificatifRefus && <div className="muted small">Justif: {t.justificatifRefus}</div>}
             </div>
 
@@ -210,7 +268,7 @@ export default function Tasks() {
               <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
             </div>
           </article>
-        ))}
+        )})}
       </div>
       
       <Modal
@@ -366,12 +424,17 @@ export default function Tasks() {
                 .map((a, idx) => {
                   const isHovered = hoveredRow === a.id
                   const bg = isHovered ? '#f8fafc' : (idx % 2 === 0 ? '#ffffff' : '#fbfdff')
-                  const aud = auditeurs.find(u => u.id === a.auditeurId)
-                  const audLabel = aud ? `${aud.nom} ${aud.prenom} (${aud.id})` : a.auditeurId
+                  const audIdVal = a.auditeurId && typeof a.auditeurId === 'object' ? (a.auditeurId._id || a.auditeurId.id) : a.auditeurId
+                  const aud = auditeurs.find(u => u.id === audIdVal || u._id === audIdVal)
+                  const audLabel = a.auditeurId && typeof a.auditeurId === 'object'
+                    ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} (${audIdVal || ''})`.trim()
+                    : (aud ? `${aud.nom} ${aud.prenom} (${aud.id || aud._id})` : a.auditeurId)
+                  const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
+                  const tLabel = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.nom || a.tacheId._id || JSON.stringify(a.tacheId)) : a.tacheId
                   return (
                   <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.id}</div>
-                    <div style={{ color: '#0b556f' }}>{a.mon}</div>
+                    <div style={{ color: '#0b556f' }}>{tLabel}</div>
                     <div style={{ color: '#0f172a' }}>{audLabel}</div>
                     <div style={{ color: '#6b7280' }}>{a.dateAffectation}</div>
                     <div>
@@ -382,7 +445,7 @@ export default function Tasks() {
                       {a.estValidee ? <span style={{ background: '#ecfdf4', color: '#065f46', padding: '4px 8px', borderRadius: 10 }}>oui</span> : <span style={{ color: '#374151' }}>non</span>}
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <button onClick={() => openDetails(a.tacheId)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff' }}>Voir</button>
+                      <button onClick={() => openDetails(tIdVal)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff' }}>Voir</button>
                     </div>
                   </div>
                   )
