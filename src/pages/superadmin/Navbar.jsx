@@ -7,7 +7,7 @@ export default function SuperAdminNavbar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <h2 style={{ margin: 0 }}>Administration globale</h2>
         <div style={{ width: 1, height: 28, background: '#eef2ff', opacity: .6 }} />
-        <input placeholder="Rechercher..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #eef2ff' }} />
+        {/* <input placeholder="Rechercher..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #eef2ff' }} /> */}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ textAlign: 'right', marginRight: 8 }}>

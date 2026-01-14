@@ -93,10 +93,44 @@ getMyProfile() {
   return res.json();
 }
 
+// Mettre à jour le profil connecté (PUT /api/users/me)
+export async function updateMyProfile(payload = {}) {
+  const basicAuth = localStorage.getItem('basicAuth')
+  if (!basicAuth) throw new Error('Utilisateur non connecté')
+
+  // n'envoyer que les champs autorisés
+  const allowed = ['nom', 'prenom', 'email', 'password', 'formation', 'formations']
+  const body = {}
+  allowed.forEach((k) => {
+    if (k in payload && payload[k] !== undefined) body[k] = payload[k]
+  })
+
+  const res = await fetch('http://localhost:5000/api/users/me', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Basic ${basicAuth}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Erreur mise à jour' }))
+    throw new Error(err.message || 'Erreur lors de la mise à jour du profil')
+  }
+
+  const data = await res.json()
+  if (data.user) {
+    localStorage.setItem('user', JSON.stringify(data.user))
+  }
+  return data
+}
+
 export default {
   login,
   logout,
   getMyProfile,
+  updateMyProfile
 };
 
 

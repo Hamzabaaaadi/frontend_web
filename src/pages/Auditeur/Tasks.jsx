@@ -26,6 +26,8 @@ export default function Tasks() {
         // normalize server shape: keep original object for details but add an `id` prop
         const normalized = Array.isArray(data) ? data.map((d) => ({ ...d, id: d._id })) : []
         setTasks(normalized)
+        console.log("Loaded affectations: 2222222222222222222222", normalized);
+        console.log("Loaded affectations: 2222222222222222222222", normalized);
       }
     }).catch(() => {
       if (mounted) setTasks([])
@@ -47,6 +49,18 @@ export default function Tasks() {
     loadDelegations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const formatAff = (a) => {
+    if (!a) return '-'
+    if (typeof a === 'object') return a._id || JSON.stringify(a)
+    return a
+  }
+
+  const formatAud = (u) => {
+    if (!u) return '-'
+    if (typeof u === 'object') return `${u.nom || ''} ${u.prenom || ''}`.trim() || (u._id || JSON.stringify(u))
+    return u
+  }
 
   const [actionLoading, setActionLoading] = useState(null)
   
@@ -216,8 +230,8 @@ export default function Tasks() {
           {delegations.map((d) => (
             <div key={d.id} className="delegation-card" role="button" tabIndex={0} onClick={() => openDelegationDetails(d)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDelegationDetails(d) } }}>
               <div className="delegation-main">
-                <div className="delegation-title">{d.id} — <span className="badge">{d.statut}</span></div>
-                <div className="delegation-sub">Affectation: {d.affectationOriginale?._id} • Proposé à: {d.auditeurPropose.nom + " " + d.auditeurPropose.prenom}</div>
+                <div className="delegation-title"> — <span className="badge">{d.statut}</span></div>
+                <div className="delegation-sub">Affectation a Proposé à: {formatAud(d.auditeurPropose)}</div>
                 <div className="delegation-just">{d.justification || '-'}</div>
               </div>
               <div className="delegation-actions">
@@ -241,17 +255,18 @@ export default function Tasks() {
       <div className="tasks-grid">
         {tasks.map((t) => {
           const tacheIdVal = t.tacheId && typeof t.tacheId === 'object' ? (t.tacheId._id || t.tacheId.id) : t.tacheId
-          const tacheLabel = t.tacheId && typeof t.tacheId === 'object' ? (t.tacheId.nom || t.tacheId._id || JSON.stringify(t.tacheId)) : t.tacheId
+          const tacheLabel =   (t.tacheId && typeof t.tacheId === 'object') ? (t.tacheId.description || t.tacheId._id || JSON.stringify(t.tacheId)) : (t.tacheId || '-')
           const audIdVal = t.auditeurId && typeof t.auditeurId === 'object' ? (t.auditeurId._id || t.auditeurId.id) : t.auditeurId
           const audFromList = auditeurs.find(u => u.id === audIdVal || u._id === audIdVal)
-          const audLabel = t.auditeurId && typeof t.auditeurId === 'object'
-            ? `${t.auditeurId.nom || ''} ${t.auditeurId.prenom || ''} (${audIdVal || ''})`.trim()
-            : (audFromList ? `${audFromList.nom} ${audFromList.prenom} (${audFromList.id || audFromList._id})` : t.auditeurId)
+          const audLabel =   typeof t.auditeurId === 'object'
+            ? `${t.auditeurId.nom || ''} ${t.auditeurId.prenom || ''} `.trim()
+            : (audFromList ? `${audFromList.nom} ${audFromList.prenom} ` : t.auditeurId)
           return (
           <article key={t.id} className="task-card" tabIndex={0} role="button" onClick={() => openDetails(tacheIdVal)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(tacheIdVal); } }}>
             <div className="task-card-body">
               <div className="task-card-head">
-                <strong className="task-title">Affectation: {t.id}</strong>
+                {/* {console.log("Rendering task22222222", t)} */}
+                <strong className="task-title">Affectation</strong>
                 <div className="task-meta">
                   <div className="muted small">{t.dateAffectation}</div>
                   <div className="muted small">{t.mode} • {t.statut}</div>
@@ -324,9 +339,9 @@ export default function Tasks() {
               <div>
                 <h3 style={{ marginTop: 0 }}>{delegationDetails.id}</h3>
                 <div style={{ color: '#6b7280', marginBottom: 8 }}>Statut: <strong>{delegationDetails.statut}</strong></div>
-                <div style={{ marginTop: 8 }}><strong>Affectation originale:</strong> {delegationDetails.affectationOriginale}</div>
-                <div style={{ marginTop: 6 }}><strong>Auditeur initial:</strong> {delegationDetails.auditeurInitial}</div>
-                <div style={{ marginTop: 6 }}><strong>Auditeur proposé:</strong> {delegationDetails.auditeurPropose}</div>
+                <div style={{ marginTop: 8 }}><strong>Affectation originale:</strong> {formatAff(delegationDetails.affectationOriginale)}</div>
+                <div style={{ marginTop: 6 }}><strong>Auditeur initial:</strong> {formatAud(delegationDetails.auditeurInitial)}</div>
+                <div style={{ marginTop: 6 }}><strong>Auditeur proposé:</strong> {formatAud(delegationDetails.auditeurPropose)}</div>
                 <div style={{ marginTop: 6 }}><strong>Date proposition:</strong> {delegationDetails.dateProposition || '-'}</div>
                 <div style={{ marginTop: 6 }}><strong>Date réponse:</strong> {delegationDetails.dateReponse || '-'}</div>
                 <div style={{ marginTop: 10 }}><strong>Justification:</strong>
@@ -340,8 +355,10 @@ export default function Tasks() {
 
         {modalType === 'details' && (
           <div>
+
             {taskDetailsLoading && <div>Chargement détails…</div>}
             {!taskDetailsLoading && taskDetails && (
+              
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
@@ -355,7 +372,7 @@ export default function Tasks() {
                     <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}><strong>Créée:</strong><br />{taskDetails.dateCreation || '-'}</div>
                   </div>
                 </div>
-
+{/* {console.log("Rendering task details", taskDetails)} */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
                   <div style={{ background: '#fafafa', padding: 12, borderRadius: 8 }}>
                     <div style={{ fontSize: 13, color: '#6b7280' }}>Période</div>
@@ -420,20 +437,22 @@ export default function Tasks() {
             </div>
             <div>
               {tasks
-                .filter((a) => ['ACCEPTEE','AFFECTEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
+                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
                 .map((a, idx) => {
                   const isHovered = hoveredRow === a.id
                   const bg = isHovered ? '#f8fafc' : (idx % 2 === 0 ? '#ffffff' : '#fbfdff')
                   const audIdVal = a.auditeurId && typeof a.auditeurId === 'object' ? (a.auditeurId._id || a.auditeurId.id) : a.auditeurId
                   const aud = auditeurs.find(u => u.id === audIdVal || u._id === audIdVal)
                   const audLabel = a.auditeurId && typeof a.auditeurId === 'object'
-                    ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} (${audIdVal || ''})`.trim()
-                    : (aud ? `${aud.nom} ${aud.prenom} (${aud.id || aud._id})` : a.auditeurId)
+                    ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} `.trim()
+                    : (aud ? `${aud.nom} ${aud.prenom} ` : a.auditeurId)
+                    console.log("audLabel", audLabel);
                   const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
-                  const tLabel = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.nom || a.tacheId._id || JSON.stringify(a.tacheId)) : a.tacheId
+                  console.log("tIdValwwwwwwwwwww", a.tacheId);
+                  const tLabel =  a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.description ) : (a.tacheId || '')
                   return (
                   <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.id}</div>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}></div>
                     <div style={{ color: '#0b556f' }}>{tLabel}</div>
                     <div style={{ color: '#0f172a' }}>{audLabel}</div>
                     <div style={{ color: '#6b7280' }}>{a.dateAffectation}</div>

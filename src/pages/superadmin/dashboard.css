@@ -29,11 +29,11 @@
 
 /* Layout and sidebar/nav styles reused across admin pages */
 .layout{ display:flex }
-.sidebar{ width:220px; padding:16px; background:transparent; color:var(--title); min-height:100vh; box-sizing:border-box }
+.sidebar{ width:220px; padding:16px; background: rgba(255,255,255,0.6); color:var(--title); min-height:100vh; box-sizing:border-box; backdrop-filter: blur(6px); border-right: 1px solid rgba(15,23,42,0.04); }
 .sidebar .brand{ font-weight:700; margin-bottom:16px; font-size:16px }
 .sidebar nav{ display:flex; flex-direction:column; gap:8px }
 .sidebar a{ color:var(--muted-2); text-decoration:none; padding:8px 10px; border-radius:8px }
-.sidebar a.active, .sidebar a:hover{ background:rgba(15,23,42,0.06); color:var(--title) }
+.sidebar a.active, .sidebar a:hover{ background:rgba(15,23,42,0.04); color:var(--title) }
 
 .main-content{ flex:1; min-height:100vh; box-sizing:border-box; padding:16px }
 .sa-topbar{ display:flex; align-items:center; justify-content:space-between; background:#fff; padding:12px 16px; border-bottom:1px solid #e6eef8; border-radius:8px }

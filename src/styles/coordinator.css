@@ -398,6 +398,56 @@ body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+/* Affectations table styles */
+.affectations-container {
+  overflow-x: auto;
+  padding: 8px;
+}
+.affectations-table {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(2,6,23,0.06);
+}
+.affectations-header {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1fr 1fr 120px 160px;
+  gap: 0;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  background: #f1f5f9;
+  font-weight: 700;
+  color: #0f172a;
+  align-items: center;
+}
+.affectations-row {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1fr 1fr 120px 160px;
+  gap: 0;
+  padding: 12px 14px;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 140ms;
+}
+.affectations-row:nth-child(even) {
+  background: #fbfdff;
+}
+.affectations-row:hover {
+  background: #f8fafc;
+}
+.affectations-cell {
+  padding: 0 8px;
+  color: #0f172a;
+}
+.affectations-cell .muted { color: #6b7280 }
+.affectations-cell--center { text-align: center }
+.affectations-actions { display:flex; justify-content:center; gap:8px }
+.btn-continue { padding:6px 10px; border-radius:8px; border:none; background:#2563eb; color:#fff; cursor:pointer }
+.btn-continue:disabled { opacity:0.6; cursor:default }
+.btn-terminate { padding:6px 10px; border-radius:8px; border:none; background:#10b981; color:#fff; cursor:pointer }
+.btn-terminate:disabled { opacity:0.6; cursor:default }
+
+
 .form-textarea {
   resize: vertical;
   min-height: 100px;
@@ -1707,6 +1757,11 @@ body {
   border-right: 1px solid #eef2f7;
   padding: 24px 18px;
   box-sizing: border-box;
+  /* keep sidebar visible while main content scrolls */
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+  overflow: auto;
 }
 .auditeur-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
 .brand-logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}

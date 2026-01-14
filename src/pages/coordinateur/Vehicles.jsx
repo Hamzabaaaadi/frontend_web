@@ -237,15 +237,6 @@ const Vehicles = () => {
 									{directions.map((d) => <option key={d} value={d}>{d}</option>)}
 								</select>
 							</div>
-							<div className="form-field">
-								<label>Dernière maintenance</label>
-								<input 
-									type="date" 
-									name="lastMaintenance" 
-									value={form.lastMaintenance} 
-									onChange={handleChange} 
-								/>
-							</div>
 							<div className="form-field checkbox-field">
 								<label>
 									<input 
@@ -256,6 +247,15 @@ const Vehicles = () => {
 									/>
 									<span>Disponible</span>
 								</label>
+							</div>
+							<div className="form-field">
+								<label>Dernière maintenance</label>
+								<input 
+									type="date" 
+									name="lastMaintenance" 
+									value={form.lastMaintenance} 
+									onChange={handleChange} 
+								/>
 							</div>
 						</div>
 

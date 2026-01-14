@@ -8,14 +8,17 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const emptyForm = {
     nom: "",
     prenom: "",
     email: "",
     role: "COORDINATEUR",
-    password: "",
+    motDePasse: "",
     estActif: true,
+    nombre_des_taches: 0,
 
     // champs Auditeur
     specialite: "",
@@ -80,6 +83,16 @@ export default function UsersManagement() {
 
   /* ================= SAVE ================= */
   const handleSave = async () => {
+    // basic client-side validation
+    if (!form.email) {
+      alert('Email requis');
+      return;
+    }
+    if (!editUser && !form.motDePasse) {
+      alert('Mot de passe requis pour la création');
+      return;
+    }
+
     const payload = {
       nom: form.nom,
       prenom: form.prenom,
@@ -96,17 +109,37 @@ export default function UsersManagement() {
         diplomes: form.diplomes,
         formations: form.formations,
         anciennete: form.anciennete || null,
+        nombre_des_taches: form.nombre_des_taches || 0,
         dateInscription: form.dateInscription || null
       });
     }
 
     if (editUser) {
       const id = editUser._id || editUser.id;
-      await svc.updateUser(id, payload);
+      // include password only if provided; send both keys to be safe
+      if (form.motDePasse) {
+        payload.motDePasse = form.motDePasse;
+        payload.password = form.motDePasse;
+      }
+      try {
+        console.log('update payload', id, payload);
+        await svc.updateUser(id, payload);
+      } catch (err) {
+        console.error('Error updating user:', err);
+        alert('Erreur lors de la mise à jour');
+      }
     } else {
       // include password for registration (use temp default if empty)
-      const regPayload = { ...payload, password: form.password || 'TempPass123!' };
-      await svc.register(regPayload); // POST /api/auth/register
+      const regPayload = { ...payload, motDePasse: form.motDePasse || 'TempPass123!' };
+      // also include `password` key for compatibility
+      regPayload.password = regPayload.motDePasse;
+      try {
+        console.log('register payload', regPayload);
+        await svc.register(regPayload); // POST /api/auth/register
+      } catch (err) {
+        console.error('Error creating user:', err);
+        alert('Erreur lors de la création: ' + (err.message || ''));
+      }
     }
 
     setModalOpen(false);
@@ -115,9 +148,21 @@ export default function UsersManagement() {
 
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer cet utilisateur ?")) return;
-    await svc.deleteUser(id);
-    await load();
+    // open modal confirmation instead of native confirm
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    const id = deleteTargetId;
+    setDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
+    try {
+      await svc.deleteUser(id);
+      await load();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+    }
   };
 
   /* ================= RENDER ================= */
@@ -181,6 +226,13 @@ export default function UsersManagement() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
+          <input
+            type="password"
+            placeholder={editUser ? "Nouveau mot de passe (laisser vide pour garder)" : "Mot de passe"}
+            value={form.motDePasse}
+            onChange={(e) => setForm({ ...form, motDePasse: e.target.value })}
+          />
+
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
@@ -213,6 +265,13 @@ export default function UsersManagement() {
               />
 
               <input
+                type="number"
+                placeholder="Nombre des taches"
+                value={form.nombre_des_taches}
+                onChange={(e) => setForm({ ...form, nombre_des_taches: Number(e.target.value) })}
+              />
+
+              <input
                 type="date"
                 value={form.dateInscription}
                 onChange={(e) => setForm({ ...form, dateInscription: e.target.value })}
@@ -228,6 +287,16 @@ export default function UsersManagement() {
             </>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={deleteConfirmOpen}
+        title="Confirmer la suppression"
+        onCancel={() => { setDeleteConfirmOpen(false); setDeleteTargetId(null); }}
+        onConfirm={confirmDeleteUser}
+        confirmText="Supprimer"
+      >
+        <div>Voulez-vous vraiment supprimer cet utilisateur ? Cette action est irréversible.</div>
       </Modal>
     </div>
   );

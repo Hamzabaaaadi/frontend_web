@@ -58,14 +58,31 @@
 
 
 import React, { useEffect, useState } from 'react'
-import { getMyProfile } from '../../services/authService'
+import { getMyProfile, updateMyProfile, logout } from '../../services/authService'
 
 export default function Profile() {
   const [user, setUser] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ nom: '', prenom: '', email: '', password: '', formation: '' })
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     getMyProfile()
-      .then(data => setUser(data.user))
+      .then(data => {
+        const u = data.user
+        setUser(u)
+        console.log('user profile data', data)
+        // fill form: formation can be in u.auditeur.formations (array)
+        const formation = u.auditeur && Array.isArray(u.auditeur.formations) ? u.auditeur.formations.join(', ') : (u.formation || '')
+        setForm({
+          nom: u.nom || '',
+          prenom: u.prenom || '',
+          email: u.email || '',
+          password: '',
+          formation
+        })
+      })
       .catch(err => console.error(err))
   }, [])
 
@@ -77,88 +94,121 @@ export default function Profile() {
     )
   }
 
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setMessage('')
+      const payload = { nom: form.nom, prenom: form.prenom }
+      if (form.email) payload.email = form.email
+      if (form.password) payload.password = form.password
+      if (form.formation) {
+        const arr = String(form.formation).split(',').map(s => s.trim()).filter(Boolean)
+        if (arr.length) {
+          payload.formations = arr
+          // keep legacy single `formation` string for compatibility
+          payload.formation = arr.join(', ')
+        }
+      }
+      console.log('payloadss', payload)
+      const res = await updateMyProfile(payload)
+      const updated = res.user || res
+      setUser(updated)
+      setEditing(false)
+      setForm({ ...form, password: '' })
+      setMessage('Profil mis à jour')
+    } catch (err) {
+      console.error(err)
+      setMessage(err.message || 'Erreur mise à jour')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <section
-      style={{
-        maxWidth: 900,
-        margin: '0 auto',
-        padding: 24
-      }}
-    >
+    <section style={{ maxWidth: 980, margin: '0 auto', padding: 24 }}>
       <h2 style={{ marginBottom: 20, fontWeight: 700 }}>Mon profil</h2>
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 24,
-          background: '#ffffff',
-          borderRadius: 14,
-          padding: 24,
-          boxShadow: '0 10px 25px rgba(0,0,0,0.06)'
-        }}
-      >
-        {/* Avatar */}
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: '50%',
-            background: '#e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 42,
-            fontWeight: 700,
-            color: '#334155'
-          }}
-        >
-          {user.nom?.charAt(0)}
+      <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{ width: 320 }}>
+          <div style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.06)' }}>
+            <div style={{ width: 120, height: 120, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: '#334155', margin: '0 auto' }}>{user.nom?.charAt(0)}</div>
+            <h3 style={{ textAlign: 'center', marginTop: 12 }}>{user.nom} {user.prenom}</h3>
+            <div style={{ textAlign: 'center', color: '#64748b', marginBottom: 12 }}>{user.role}</div>
+
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Nom</div>
+              {!editing ? <div style={{ fontWeight: 700 }}>{user.nom}</div> : <input value={form.nom} onChange={(e)=>setForm({...form, nom: e.target.value})} style={{ padding: 8, borderRadius: 8, width: '100%' }} />}
+
+              <div style={{ fontSize: 13, color: '#64748b' }}>Prénom</div>
+              {!editing ? <div style={{ fontWeight: 700 }}>{user.prenom}</div> : <input value={form.prenom} onChange={(e)=>setForm({...form, prenom: e.target.value})} style={{ padding: 8, borderRadius: 8, width: '100%' }} />}
+
+              <div style={{ fontSize: 13, color: '#64748b' }}>Email</div>
+              {!editing ? <div style={{ fontWeight: 700 }}>{user.email}</div> : <input value={form.email} onChange={(e)=>setForm({...form, email: e.target.value})} style={{ padding: 8, borderRadius: 8, width: '100%' }} />}
+
+              <div style={{ fontSize: 13, color: '#64748b' }}>Mot de passe</div>
+              {!editing ? <div style={{ fontWeight: 700 }}>••••••••</div> : <input type="password" value={form.password} onChange={(e)=>setForm({...form, password: e.target.value})} placeholder="Laisser vide pour conserver" style={{ padding: 8, borderRadius: 8, width: '100%' }} />}
+
+              <div style={{ fontSize: 13, color: '#64748b' }}>Formation(s)</div>
+              {!editing ? <div style={{ fontWeight: 700 }}>{(user.auditeur && Array.isArray(user.auditeur.formations) ? user.auditeur.formations.join(', ') : (user.formation || '—'))}</div> : (
+                <>
+                  <input value={form.formation} onChange={(e)=>setForm({...form, formation: e.target.value})} placeholder="Séparez par , pour plusieurs" style={{ padding: 8, borderRadius: 8, width: '100%' }} />
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {(form.formation || '').split(',').map((f,i)=> f.trim()).filter(Boolean).map((f,i)=>(<div key={i} style={{ padding: '6px 10px', background: '#fff7ed', borderRadius: 999 }}>{f}</div>))}
+                  </div>
+                </>
+              )}
+
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                {!editing ? (
+                  <>
+                    <button onClick={() => setEditing(true)} className="btn-ghost" style={{ padding: '8px 12px', borderRadius: 8 }}>Modifier</button>
+                    <button onClick={() => { logout(); window.location.reload(); }} className="btn-danger" style={{ padding: '8px 12px', borderRadius: 8 }}>Déconnexion</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditing(false); setMessage(''); }} className="btn-ghost">Annuler</button>
+                    <button onClick={handleSave} className="btn-primary">{saving ? '…' : 'Enregistrer'}</button>
+                  </>
+                )}
+              </div>
+
+              {message && <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#064e3b' }}>{message}</div>}
+            </div>
+          </div>
         </div>
 
-        {/* Infos */}
         <div style={{ flex: 1 }}>
-          <div style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>
-              {user.nom} {user.prenom}
-            </h3>
-            <p style={{ margin: 0, color: '#64748b' }}>
-              {user.role}
-            </p>
-          </div>
+          <div style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.04)' }}>
+            <h4 style={{ marginTop: 0 }}>Informations auditeur</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Info label="Grade" value={user.auditeur?._id ? (user.auditeur.grade || '—') : (user.grade || '—')} />
+              <Info label="Spécialité" value={user.auditeur.specialite || '—'} />
+            </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 12,
-              marginTop: 16
-            }}
-          >
-            <Info label="Email" value={user.email} />
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Diplômes</div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(user.auditeur && Array.isArray(user.auditeur.diplomes) ? user.auditeur.diplomes : []).length > 0 ? (user.auditeur.diplomes.map((d,i)=> <div key={i} style={{ padding: '6px 10px', background: '#f1f5f9', borderRadius: 999 }}>{d}</div>)) : <div style={{ color: '#94a3b8' }}>—</div>}
+              </div>
+            </div>
 
-            {user.role === 'AUDITEUR' && (
-              <>
-                <Info label="Grade" value={user.grade} />
-                <Info label="Spécialité" value={user.specialite} />
-              </>
-            )}
-          </div>
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Formations</div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(user.auditeur && Array.isArray(user.auditeur.formations) ? user.auditeur.formations : []).length > 0 ? (user.auditeur.formations.map((f,i)=> <div key={i} style={{ padding: '6px 10px', background: '#fff7ed', borderRadius: 999 }}>{f}</div>)) : <div style={{ color: '#94a3b8' }}>—</div>}
+              </div>
+            </div>
 
-          {/* Déconnexion (discrète) */}
-          <div style={{ marginTop: 24 }}>
-            <button
-              onClick={() => console.log('logout')}
-              style={{
-                background: '#ef4444',
-                color: '#fff',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: 6,
-                cursor: 'pointer'
-              }}
-            >
-              Déconnexion
-            </button>
+            <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>Compte créé</div>
+                <div style={{ fontWeight: 700 }}>{new Date(user.dateCreation).toLocaleString()}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>Statut</div>
+                <div style={{ fontWeight: 700 }}>{user.estActif ? 'Actif' : 'Inactif'}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

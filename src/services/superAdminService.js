@@ -65,10 +65,18 @@ export async function register(payload) {
       body: JSON.stringify(payload)
     })
     if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) { /* ignore */ }
-      console.error('register HTTP error', r.status, body)
-      throw new Error('Network')
+      // try to parse json error body for a helpful message
+      let bodyText = null
+      try { bodyText = await r.text() } catch (e) { /* ignore */ }
+      try {
+        const json = JSON.parse(bodyText)
+        const msg = json && json.message ? json.message : bodyText
+        console.error('register HTTP error', r.status, msg)
+        throw new Error(msg || 'Network')
+      } catch (e) {
+        console.error('register HTTP error', r.status, bodyText)
+        throw new Error(bodyText || 'Network')
+      }
     }
     return await r.json()
   } catch (err) {

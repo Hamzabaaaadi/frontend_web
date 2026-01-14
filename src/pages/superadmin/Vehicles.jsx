@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as svc from '../../services/superAdminService';
+import { getAuditeurs } from '../../services/userService';
 import Modal from '../../components/common/Modal';
 import './dashboard.css'
 
@@ -19,6 +20,9 @@ export default function VehiclesManagement() {
     dateDebut: null,
     dateFin: null,
   });
+  const [auditeurs, setAuditeurs] = useState([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const loadVehicles = async () => {
     setLoading(true);
@@ -49,6 +53,27 @@ export default function VehiclesManagement() {
   useEffect(() => {
     loadVehicles();
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getAuditeurs();
+        if (!mounted) return;
+        setAuditeurs(list || []);
+      } catch (err) {
+        console.error('Erreur getAuditeurs:', err);
+        setAuditeurs([]);
+      }
+    })();
+    return () => { mounted = false };
+  }, []);
+
+  const getAuditeurName = (id) => {
+    if (!id) return '-';
+    const found = auditeurs.find((a) => a.id === id);
+    return found ? found.name : id;
+  };
 
   const openCreate = () => {
     setEditVeh(null);
@@ -108,7 +133,15 @@ export default function VehiclesManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer le véhicule ?')) return;
+    // open confirmation modal instead of native confirm
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    const id = deleteTargetId;
+    setDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
     try {
       await svc.deleteVehicle(id);
       await loadVehicles();
@@ -140,13 +173,13 @@ export default function VehiclesManagement() {
                   {v.immatriculation} — {v.marque} {v.modele}
                 </div>
                 <div style={{ color: '#6b7280' }}>
-                  {v._id || v.id} • {v.estDisponible ? 'Disponible' : 'Indisponible'}
+                  •  •  • {v.estDisponible ? 'Disponible' : 'Indisponible'}
                 </div>
                 <div style={{ color: '#475569', marginTop: 6 }}>
                   Direction: {v.direction || '-'} • Type: {v.typeAttribution || '-'}
                 </div>
                 <div style={{ color: '#475569', marginTop: 6 }}>
-                  Attribué à: {v.auditeurAttribue || '-'}
+                  Attribué à: {getAuditeurName(v.auditeurAttribue)}
                 </div>
                 <div style={{ color: '#475569', marginTop: 6 }}>
                   Période: {v.dateDebut || '-'} → {v.dateFin || '-'}
@@ -203,13 +236,20 @@ export default function VehiclesManagement() {
                 <option value="TEMPORAIRE">TEMPORAIRE</option>
                 <option value="PERMANENT">PERMANENT</option>
               </select>
-              <input
-                placeholder="Auditeur attribué (ID)"
-                value={form.auditeurAttribue || ''}
-                onChange={(e) =>
-                  setForm({ ...form, auditeurAttribue: e.target.value || null })
-                }
-              />
+              <label style={{ display: 'flex', flexDirection: 'column' }}>
+                Auditeur attribué
+                <select
+                  value={form.auditeurAttribue || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, auditeurAttribue: e.target.value || null })
+                  }
+                >
+                  <option value="">-- Choisir un auditeur --</option>
+                  {auditeurs.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <label style={{ display: 'flex', flexDirection: 'column' }}>
                   Date début
@@ -245,6 +285,16 @@ export default function VehiclesManagement() {
             Disponible
           </label>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={deleteConfirmOpen}
+        title="Confirmer la suppression"
+        onCancel={() => { setDeleteConfirmOpen(false); setDeleteTargetId(null); }}
+        onConfirm={confirmDeleteVehicle}
+        confirmText="Supprimer"
+      >
+        <div>Voulez-vous vraiment supprimer ce véhicule ? Cette action est irréversible.</div>
       </Modal>
     </div>
   );
