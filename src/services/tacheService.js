@@ -66,7 +66,9 @@ export async function getTaskById(id) {
   try {
     const res = await fetch(`http://localhost:5000/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network response was not ok')
-    return await res.json()
+    const data = await res.json()
+    return data
+  
   } catch (err) {
     console.warn('tacheService.getTaskById fallback to mock', err.message)
     return new Promise((resolve) => setTimeout(() => resolve(mockTasks.find((t) => t.id === id) || null), 300))
@@ -84,7 +86,7 @@ export async function completeTask(id) {
   }
 
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/${id}complete`, {
+    const res = await fetch(`http://localhost:5000/api/taches/${id}/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() }
     })

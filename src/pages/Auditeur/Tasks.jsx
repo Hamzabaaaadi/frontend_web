@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getTasks, getTaskById } from '../../services/tacheService'
+import { getTasks, getTaskById, completeTask } from '../../services/tacheService'
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
@@ -151,17 +151,14 @@ export default function Tasks() {
         data = null
       } else {
         // if tacheId is an object, use it
-        if (typeof tacheId === 'object') data = tacheId
-        // otherwise try to find it inside loaded affectations
-        if (!data) {
-          const byAff = tasks.find((a) => (a.tacheId && (a.tacheId._id === tacheId || a.tacheId.id === tacheId)))
-          if (byAff && typeof byAff.tacheId === 'object') data = byAff.tacheId
-        }
+        if (typeof tacheId === 'object')   
+                data = await getTaskById(tacheId._id || tacheId.id)
+        else
+                data = await getTaskById(tacheId)
+       
       }
 
-      if (!data) {
-        data = await getTaskById(tacheId)
-      }
+     
 
       setTaskDetails(data)
       setModalType('details')
@@ -172,6 +169,22 @@ export default function Tasks() {
     } finally {
       setTaskDetailsLoading(false)
     }
+  }
+
+  const formatDate = (iso) => {
+    if (!iso) return '-'
+    try {
+      const d = new Date(iso)
+      return d.toLocaleDateString('fr-FR')
+    } catch (e) { return iso }
+  }
+
+  const formatDateTime = (iso) => {
+    if (!iso) return '-'
+    try {
+      const d = new Date(iso)
+      return d.toLocaleString('fr-FR')
+    } catch (e) { return iso }
   }
 
   const closeModal = () => {
@@ -357,55 +370,58 @@ export default function Tasks() {
           <div>
 
             {taskDetailsLoading && <div>Chargement détails…</div>}
-            {!taskDetailsLoading && taskDetails && (
-              
+            
+           {!taskDetailsLoading && taskDetails && (
+          
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 6 }}>{taskDetails.nom || '—'}</h3>
-                    <div style={{ color: '#6b7280', marginBottom: 8 }}>{taskDetails.type || ''}</div>
-                    <p style={{ marginTop: 10, lineHeight: 1.45 }}>{taskDetails.description || 'Pas de description disponible.'}</p>
+
+                    {console.log("tacgffffffffff",taskDetails )}
+                    <h3 style={{ marginTop: 0, marginBottom: 6 }}>{taskDetails.tache.nom || '—'}</h3>
+                    <div style={{ color: '#6b7280', marginBottom: 8 }}>{taskDetails.tache.type || ''}</div>
+                    <p style={{ marginTop: 10, lineHeight: 1.45 }}>{taskDetails.tache.description || 'Pas de description disponible.'}</p>
                   </div>
                   <div style={{ minWidth: 160, textAlign: 'right' }}>
                     <div style={{ marginBottom: 8, fontSize: 13, color: '#6b7280' }}>Statut</div>
-                    <div style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 14, background: '#f1f5f9', color: '#0f172a', fontWeight: 700 }}>{taskDetails.statut || '—'}</div>
-                    <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}><strong>Créée:</strong><br />{taskDetails.dateCreation || '-'}</div>
+                    <div style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 14, background: '#f1f5f9', color: '#0f172a', fontWeight: 700 }}>{taskDetails.tache.statut || '—'}</div>
+                    <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}><strong>Créée:</strong><br />{formatDateTime(taskDetails.tache.dateCreation)}</div>
                   </div>
                 </div>
 {/* {console.log("Rendering task details", taskDetails)} */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
                   <div style={{ background: '#fafafa', padding: 12, borderRadius: 8 }}>
                     <div style={{ fontSize: 13, color: '#6b7280' }}>Période</div>
-                    <div style={{ marginTop: 6 }}><strong>Début:</strong> {taskDetails.dateDebut || '-'}</div>
-                    <div style={{ marginTop: 4 }}><strong>Fin:</strong> {taskDetails.dateFin || '-'}</div>
+                    <div style={{ marginTop: 6 }}><strong>Début:</strong> {formatDate(taskDetails.tache.dateDebut)}</div>
+                    <div style={{ marginTop: 4 }}><strong>Fin:</strong> {formatDate(taskDetails.tache.dateFin)}</div>
                     <div style={{ marginTop: 8 }}><strong>Places:</strong> {typeof taskDetails.nombrePlaces === 'number' ? taskDetails.nombrePlaces : '-'}</div>
                   </div>
 
                   <div style={{ background: '#fafafa', padding: 12, borderRadius: 8 }}>
                     <div style={{ fontSize: 13, color: '#6b7280' }}>Options</div>
-                    <div style={{ marginTop: 6 }}><strong>Rémunéré:</strong> {taskDetails.estRemuneree ? 'Oui' : 'Non'}</div>
-                    <div style={{ marginTop: 6 }}><strong>Commune:</strong> {taskDetails.estCommune ? 'Oui' : 'Non'}</div>
-                    <div style={{ marginTop: 6 }}><strong>Nécessite véhicule:</strong> {taskDetails.necessiteVehicule ? 'Oui' : 'Non'}</div>
-                    <div style={{ marginTop: 6 }}><strong>Direction:</strong> {taskDetails.direction || '-'}</div>
+                    <div style={{ marginTop: 6 }}><strong>Rémunéré:</strong> {taskDetails.tache.estRemuneree ? 'Oui' : 'Non'}</div>
+                    <div style={{ marginTop: 6 }}><strong>Commune:</strong> {taskDetails.tache.estCommune ? 'Oui' : 'Non'}</div>
+                    <div style={{ marginTop: 6 }}><strong>Nécessite véhicule:</strong> {taskDetails.tache.necessiteVehicule ? 'Oui' : 'Non'}</div>
+                    <div style={{ marginTop: 6 }}><strong>Direction:</strong> {taskDetails.tache.direction || '-'}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
                   <div style={{ background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #eef2f7' }}>
                     <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Spécialités concernées</div>
-                    <div style={{ color: '#0f172a' }}>{Array.isArray(taskDetails.specialitesConcernees) && taskDetails.specialitesConcernees.length > 0 ? taskDetails.specialitesConcernees.join(', ') : '-'}</div>
+                    <div style={{ color: '#0f172a' }}>{Array.isArray(taskDetails?.tache?.specialitesConcernees) && taskDetails.tache.specialitesConcernees.length ? taskDetails.tache.specialitesConcernees.join(', ') : '-'}</div>
                   </div>
 
                   <div style={{ background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #eef2f7' }}>
                     <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Grades concernés</div>
-                    <div style={{ color: '#0f172a' }}>{Array.isArray(taskDetails.gradesConcernes) && taskDetails.gradesConcernes.length > 0 ? taskDetails.gradesConcernes.join(', ') : '-'}</div>
+                    <div style={{ color: '#0f172a' }}>{Array.isArray(taskDetails?.tache?.gradesConcernes) && taskDetails.tache.gradesConcernes.length ? taskDetails.tache.gradesConcernes.join(', ') : '-'}</div>
                   </div>
                 </div>
 
                 <div style={{ marginTop: 12 }}>
                   <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Fichier administratif</div>
                   {taskDetails.fichierAdministratif ? (
-                    <a href={taskDetails.fichierAdministratif} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>Télécharger / Ouvrir le fichier</a>
+                    <a href={taskDetails.tache.fichierAdministratif} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>Télécharger / Ouvrir le fichier</a>
                   ) : (
                     <div style={{ color: '#6b7280' }}>Aucun fichier</div>
                   )}
@@ -427,7 +443,7 @@ export default function Tasks() {
         <div style={{ overflowX: 'auto' }}>
           <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 16px rgba(2,6,23,0.06)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', borderBottom: '1px solid #eef2f7', background: '#f1f5f9', fontWeight: 700, color: '#0f172a' }}>
-              <div>ID</div>
+              <div>Terminer</div>
               <div>Tâche</div>
               <div>Auditeur</div>
               <div>Date</div>
@@ -446,13 +462,36 @@ export default function Tasks() {
                   const audLabel = a.auditeurId && typeof a.auditeurId === 'object'
                     ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} `.trim()
                     : (aud ? `${aud.nom} ${aud.prenom} ` : a.auditeurId)
-                    console.log("audLabel", audLabel);
+                    // console.log("audLabel", audLabel);
                   const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
                   console.log("tIdValwwwwwwwwwww", a.tacheId);
                   const tLabel =  a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.description ) : (a.tacheId || '')
                   return (
                   <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          const taskId = tIdVal
+                          if (!taskId) { alert('Tâche introuvable'); return }
+                          setActionLoading(a.id)
+                          try {
+                            await completeTask(taskId)
+                            setToastMessage('Tâche terminée')
+                            setTimeout(() => setToastMessage(''), 3000)
+                          } catch (err) {
+                            console.error(err)
+                            alert('Erreur terminaison tâche')
+                          } finally {
+                            setActionLoading(null)
+                          }
+                        }}
+                        disabled={actionLoading === a.id}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#10b981', color: '#fff' }}
+                      >
+                        {actionLoading === a.id ? '…' : 'Terminer'}
+                      </button>
+                    </div>
                     <div style={{ color: '#0b556f' }}>{tLabel}</div>
                     <div style={{ color: '#0f172a' }}>{audLabel}</div>
                     <div style={{ color: '#6b7280' }}>{a.dateAffectation}</div>

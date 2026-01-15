@@ -80,11 +80,21 @@ const TasksAssignment = () => {
     return {
       _id: t._id || t.id || t._id,
       id: t.id || t._id,
-      name: t.name || t.titre || t.title || '',
-      specialties: Array.isArray(t.specialties) ? t.specialties : (t.specialty ? [t.specialty] : []),
-      grades: Array.isArray(t.grades) ? t.grades : (t.grade ? [t.grade] : []),
-      slots: typeof t.slots === 'number' ? t.slots : (t.places || 1),
-      mode: t.mode || 'Manuel',
+      // accept backend fields in French (nom, specialitesConcernees, nombrePlaces, etc.)
+      name: t.name || t.titre || t.title || t.nom || '',
+      specialties: Array.isArray(t.specialties)
+        ? t.specialties
+        : (Array.isArray(t.specialitesConcernees) ? t.specialitesConcernees : (t.specialty ? [t.specialty] : (t.specialitesConcernees ? [t.specialitesConcernees] : []))),
+      grades: Array.isArray(t.grades)
+        ? t.grades
+        : (Array.isArray(t.gradesConcernes) ? t.gradesConcernes : (t.grade ? [t.grade] : (t.gradesConcernes ? [t.gradesConcernes] : []))),
+      slots: typeof t.slots === 'number' ? t.slots : (typeof t.nombrePlaces === 'number' ? t.nombrePlaces : (t.places || 1)),
+      mode: t.mode || t.modeText || 'Manuel',
+      estRemuneree: typeof t.estRemuneree === 'boolean' ? t.estRemuneree : (t.paid || false),
+      estCommune: typeof t.estCommune === 'boolean' ? t.estCommune : false,
+      necessiteVehicule: typeof t.necessiteVehicule === 'boolean' ? t.necessiteVehicule : false,
+      fichierAdministratif: t.fichierAdministratif || t.file || null,
+      statut: t.statut || t.status || 'CREEE',
       affectations: Array.isArray(t.affectations) ? t.affectations : [],
       ...t,
     }
@@ -136,19 +146,20 @@ const TasksAssignment = () => {
         setAiSuggestions([]);
         setShowAffectModal(true);
       }
-      // After opening the affect modal, scroll it (or page bottom) into view
-      setTimeout(() => {
-        const modalEl = document.querySelector('.affect-modal')
-        const formContainer = document.querySelector('.form-container')
-        const target = modalEl || formContainer
-        if (target && typeof target.scrollIntoView === 'function') {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        } else {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-        }
-      }, 150)
+      // Do not force page scrolling; modal is presented as overlay and body scroll is locked via effect
     })()
   };
+
+  // Prevent background page scroll when either modal is open (fixes mobile portrait jumps)
+  React.useEffect(() => {
+    const original = document.body.style.overflow || '';
+    if (showAffectModal || showSuggestionsModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = original;
+    }
+    return () => { document.body.style.overflow = original };
+  }, [showAffectModal, showSuggestionsModal]);
 
   const validateAutoSuggestions = () => {
     const newAffectations = aiSuggestions.map(sug => ({

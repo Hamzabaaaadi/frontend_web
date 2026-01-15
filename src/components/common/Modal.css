@@ -106,3 +106,43 @@
   .modal-box{ width: 96%; }
   .modal-title{ font-size:16px }
 }
+
+/* Styles for the ad-hoc affect modal used in some pages (.affect-modal) */
+.affect-modal{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(820px, 96%);
+  max-height: 85vh;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 48px rgba(2,6,23,0.28);
+  z-index: 1100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.affect-modal .modal-header{ padding: 14px 16px }
+.affect-modal .modal-body{ padding: 12px 16px; overflow: auto; max-height: calc(85vh - 140px); }
+.affect-modal .modal-footer{ padding: 12px 16px; }
+
+@media (max-width:520px){
+  /* bottom-sheet behavior on narrow/mobile portrait */
+  .affect-modal{
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-height: 90vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .affect-modal .modal-body{ max-height: calc(90vh - 120px); }
+  .affect-modal .modal-footer{ position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.92), #fff); }
+}
