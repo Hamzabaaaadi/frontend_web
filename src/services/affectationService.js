@@ -125,6 +125,19 @@ const mockDelegations = [
 
 export async function getAffectations() {
   try {
+    const res = await fetch('http://localhost:5000/api/affectations/me', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+    if (!res.ok) throw new Error('Network error');
+    return await res.json();
+  } catch (err) {
+    console.warn('affectationService.getAffectations fallback', err.message);
+    return simulate([]);
+  }
+}
+export async function getAllAffectations() {
+  try {
     const res = await fetch('http://localhost:5000/api/affectations', {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', ...authHeaders() }

@@ -21,17 +21,21 @@ export default function Tasks() {
   useEffect(() => {
     let mounted = true
     // load affectations (not tasks) to match domain model
-    getAffectations().then((data) => {
-      if (mounted) {
-        // normalize server shape: keep original object for details but add an `id` prop
-        const normalized = Array.isArray(data) ? data.map((d) => ({ ...d, id: d._id })) : []
-        setTasks(normalized)
-        console.log("Loaded affectations: 2222222222222222222222", normalized);
-        console.log("Loaded affectations: 2222222222222222222222", normalized);
-      }
-    }).catch(() => {
-      if (mounted) setTasks([])
-    }).finally(() => mounted && setLoading(false))
+    const toArray = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.affectations) ? v.affectations : (v && Array.isArray(v.data) ? v.data : []))
+
+    getAffectations()
+      .then((data) => {
+        if (mounted) {
+          // normalize server shape: keep original object for details but add an `id` prop
+          const list = toArray(data).map((d) => ({ ...d, id: d._id || d.id }))
+          setTasks(list)
+          console.log('Loaded affectations:', list)
+        }
+      })
+      .catch(() => {
+        if (mounted) setTasks([])
+      })
+      .finally(() => mounted && setLoading(false))
     return () => { mounted = false }
   }, [])
 
@@ -78,6 +82,7 @@ export default function Tasks() {
   const [hoveredRow, setHoveredRow] = useState(null)
   const [taskDetails, setTaskDetails] = useState(null)
   const [taskDetailsLoading, setTaskDetailsLoading] = useState(false)
+  const [modalCompleteAffId, setModalCompleteAffId] = useState(null)
 
   const openModal = (type, id) => {
     setModalType(type)
@@ -192,6 +197,7 @@ export default function Tasks() {
     setModalType(null)
     setModalTaskId(null)
     setModalInput('')
+    setModalCompleteAffId(null)
   }
 
   const handleConfirmModal = async () => {
@@ -221,6 +227,17 @@ export default function Tasks() {
         await loadDelegations()
         setToastMessage('Proposition de délégation enregistrée')
         setTimeout(() => setToastMessage(''), 3000)
+      } else if (modalType === 'complete') {
+        const affId = modalCompleteAffId;
+        try {
+          await completeTask(id);
+          setTasks((prev) => prev.map((t) => (t.id === affId ? { ...t, statut: 'TERMINEE' } : t)));
+          setToastMessage('Tâche terminée');
+          setTimeout(() => setToastMessage(''), 3000);
+        } catch (err) {
+          console.error(err);
+          alert('Erreur terminaison tâche');
+        }
       }
       closeModal()
     } catch (err) {
@@ -255,7 +272,7 @@ export default function Tasks() {
 
                 {d.statut === 'EN_ATTENTE' && (
                   <>
-                    <button className="btn success" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await acceptDelegation(d.id); await getAffectations().then((r)=>setTasks(r)); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Accepter</button>
+                    <button className="btn success" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await acceptDelegation(d.id); const r = await getAffectations(); const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : [])); setTasks(list.map((it) => ({ ...it, id: it._id || it.id }))); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Accepter</button>
                     <button className="btn danger" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await refuseDelegation(d.id); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Refuser</button>
                   </>
                 )}
@@ -301,12 +318,33 @@ export default function Tasks() {
       
       <Modal
         isOpen={modalOpen}
-        title={modalType === 'accept' ? 'Confirmer acceptation' : modalType === 'refuse' ? 'Motif du refus' : modalType === 'delegate' ? 'Déléguer la tâche' : 'Détails tâche'}
+        title={
+          modalType === 'accept'
+            ? 'Confirmer acceptation'
+            : modalType === 'refuse'
+            ? 'Motif du refus'
+            : modalType === 'delegate'
+            ? 'Déléguer la tâche'
+            : modalType === 'complete'
+            ? 'Confirmer terminaison'
+            : 'Détails tâche'
+        }
         onCancel={closeModal}
         onConfirm={modalType === 'details' ? closeModal : handleConfirmModal}
-        confirmText={modalType === 'accept' ? 'Accepter' : modalType === 'refuse' ? 'Refuser' : modalType === 'delegate' ? 'Déléguer' : 'Fermer'}
+        confirmText={
+          modalType === 'accept'
+            ? 'Accepter'
+            : modalType === 'refuse'
+            ? 'Refuser'
+            : modalType === 'delegate'
+            ? 'Déléguer'
+            : modalType === 'complete'
+            ? 'Terminer'
+            : 'Fermer'
+        }
       >
         {modalType === 'accept' && <div>Voulez-vous accepter cette tâche ?</div>}
+        {modalType === 'complete' && <div>Voulez-vous marquer cette tâche comme terminée ?</div>}
               {toastMessage && (
                 <div style={{ margin: '8px 0', padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#064e3b' }}>{toastMessage}</div>
               )}
@@ -388,7 +426,6 @@ export default function Tasks() {
                     <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}><strong>Créée:</strong><br />{formatDateTime(taskDetails.tache.dateCreation)}</div>
                   </div>
                 </div>
-{/* {console.log("Rendering task details", taskDetails)} */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
                   <div style={{ background: '#fafafa', padding: 12, borderRadius: 8 }}>
                     <div style={{ fontSize: 13, color: '#6b7280' }}>Période</div>
@@ -442,18 +479,19 @@ export default function Tasks() {
 
         <div style={{ overflowX: 'auto' }}>
           <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 16px rgba(2,6,23,0.06)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', borderBottom: '1px solid #eef2f7', background: '#f1f5f9', fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', borderBottom: '1px solid #eef2f7', background: '#f1f5f9', fontWeight: 700, color: '#0f172a' }}>
               <div>Terminer</div>
               <div>Tâche</div>
               <div>Auditeur</div>
               <div>Date</div>
               <div>Mode / Statut</div>
+              <div>Statut tâche</div>
               <div style={{ textAlign: 'center' }}>Validée</div>
               <div style={{ textAlign: 'center' }}>Détails</div>
             </div>
             <div>
               {tasks
-                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
+                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE','TERMINEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
                 .map((a, idx) => {
                   const isHovered = hoveredRow === a.id
                   const bg = isHovered ? '#f8fafc' : (idx % 2 === 0 ? '#ffffff' : '#fbfdff')
@@ -464,27 +502,17 @@ export default function Tasks() {
                     : (aud ? `${aud.nom} ${aud.prenom} ` : a.auditeurId)
                     // console.log("audLabel", audLabel);
                   const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
-                  console.log("tIdValwwwwwwwwwww", a.tacheId);
                   const tLabel =  a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.description ) : (a.tacheId || '')
                   return (
-                  <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
+                  <div key={a.id} onMouseEnter={() => setHoveredRow(a.id)} onMouseLeave={() => setHoveredRow(null)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 120px 100px', gap: 0, padding: '12px 14px', alignItems: 'center', background: bg, borderBottom: '1px solid #f1f5f9', transition: 'background 140ms' }}>
                     <div style={{ textAlign: 'center' }}>
                       <button
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          const taskId = tIdVal
-                          if (!taskId) { alert('Tâche introuvable'); return }
-                          setActionLoading(a.id)
-                          try {
-                            await completeTask(taskId)
-                            setToastMessage('Tâche terminée')
-                            setTimeout(() => setToastMessage(''), 3000)
-                          } catch (err) {
-                            console.error(err)
-                            alert('Erreur terminaison tâche')
-                          } finally {
-                            setActionLoading(null)
-                          }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setModalCompleteAffId(a.id);
+                          setModalTaskId(tIdVal);
+                          setModalType('complete');
+                          setModalOpen(true);
                         }}
                         disabled={actionLoading === a.id}
                         style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#10b981', color: '#fff' }}
@@ -494,10 +522,14 @@ export default function Tasks() {
                     </div>
                     <div style={{ color: '#0b556f' }}>{tLabel}</div>
                     <div style={{ color: '#0f172a' }}>{audLabel}</div>
-                    <div style={{ color: '#6b7280' }}>{a.dateAffectation}</div>
+                    <div style={{ color: '#6b7280' }}>{formatDate(a.dateAffectation)}</div>
                     <div>
                       <div style={{ fontSize: 13, color: '#0f172a' }}>{a.mode}</div>
                       <div style={{ marginTop: 6 }}><span style={{ padding: '6px 10px', borderRadius: 14, background: a.statut === 'ACCEPTEE' ? '#ecfdf5' : '#fff7ed', color: a.statut === 'ACCEPTEE' ? '#065f46' : '#92400e', fontSize: 12 }}>{a.statut}</span></div>
+                    </div>
+                    <div style={{ color: '#0f172a' }}>
+                      {/* Affiche le statut de la tâche liée si disponible */}
+                      {a.tacheId && typeof a.tacheId === 'object' && a.tacheId.statut ? a.tacheId.statut : '-'}
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       {a.estValidee ? <span style={{ background: '#ecfdf4', color: '#065f46', padding: '4px 8px', borderRadius: 10 }}>oui</span> : <span style={{ color: '#374151' }}>non</span>}
@@ -515,6 +547,17 @@ export default function Tasks() {
     </section>
   )
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

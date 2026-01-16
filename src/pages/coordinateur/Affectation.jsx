@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAffectations, deleteAffectation, validateAffectationStatus, rejectAffectationStatus } from "../../services/affectationService";
+import { getAllAffectations, deleteAffectation, validateAffectationStatus, rejectAffectationStatus } from "../../services/affectationService";
 import "../../styles/affectation.css";
 
 const Affectation = () => {
@@ -10,7 +10,7 @@ const Affectation = () => {
   const [rejectMsg, setRejectMsg] = useState("");
 
   useEffect(() => {
-    getAffectations()
+    getAllAffectations()
       .then((data) => {
         setAffectations(data.affectations || []);
         setLoading(false);

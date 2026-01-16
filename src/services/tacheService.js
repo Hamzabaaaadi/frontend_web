@@ -86,7 +86,7 @@ export async function completeTask(id) {
   }
 
   try {
-    const res = await fetch(`http://localhost:5000/api/taches/${id}/complete`, {
+    const res = await fetch(`http://localhost:5000/api/tasks/${id}/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() }
     })

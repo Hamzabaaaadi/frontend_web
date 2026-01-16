@@ -11,8 +11,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true
-    getAffectations().then((r) => { if (mounted) setAffectations(r || []) }).catch(() => { if (mounted) setAffectations([]) })
-    getDelegations().then((d) => { if (mounted) setDelegations(d || []) }).catch(() => { if (mounted) setDelegations([]) })
+    const toArray = (v) => Array.isArray(v) ? v : (v && Array.isArray(v.affectations) ? v.affectations : (v && Array.isArray(v.data) ? v.data : []))
+
+    getAffectations()
+      .then((r) => { if (mounted) setAffectations(toArray(r)) })
+      .catch(() => { if (mounted) setAffectations([]) })
+
+    getDelegations()
+      .then((d) => { if (mounted) setDelegations(Array.isArray(d) ? d : (d && Array.isArray(d.delegations) ? d.delegations : [])) })
+      .catch(() => { if (mounted) setDelegations([]) })
+
     return () => { mounted = false }
   }, [])
 
