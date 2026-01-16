@@ -125,13 +125,15 @@ const mockDelegations = [
 
 export async function getAffectations() {
   try {
-    const res = await fetch('http://localhost:5000/api/affectations/me', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network response was not ok')
-    const data = await res.json()
-    return normalizeArray(data)
+    const res = await fetch('http://localhost:5000/api/affectations', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+    if (!res.ok) throw new Error('Network error');
+    return await res.json();
   } catch (err) {
-    console.warn('affectationService.getAffectations fallback to mock', err.message)
-    return simulate(mockAffectations)
+    console.warn('affectationService.getAffectations fallback', err.message);
+    return simulate([]);
   }
 }
 
@@ -203,6 +205,48 @@ export async function refuseDelegation(delegationId) {
     mockDelegations[idx].statut = 'REFUSEE'
     mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
     return simulate(mockDelegations[idx])
+  }
+}
+
+export async function deleteAffectation(affectationId) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+    if (!res.ok) throw new Error('Network error');
+    return await res.json();
+  } catch (err) {
+    console.warn('affectationService.deleteAffectation fallback', err.message);
+    return simulate({ success: true, id: affectationId });
+  }
+}
+
+export async function validateAffectationStatus(affectationId) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/tasks/affectation/${affectationId}/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+    if (!res.ok) throw new Error('Network error');
+    return await res.json();
+  } catch (err) {
+    console.warn('affectationService.validateAffectationStatus fallback', err.message);
+    return simulate({ success: true, id: affectationId });
+  }
+}
+
+export async function rejectAffectationStatus(affectationId) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/tasks/affectation/${affectationId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }
+    });
+    if (!res.ok) throw new Error('Network error');
+    return await res.json();
+  } catch (err) {
+    console.warn('affectationService.rejectAffectationStatus fallback', err.message);
+    return simulate({ success: true, id: affectationId });
   }
 }
 

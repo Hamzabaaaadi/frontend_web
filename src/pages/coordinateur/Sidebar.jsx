@@ -6,6 +6,7 @@ const navItems = [
 	{ label: "📋 Gestion des tâches", to: "/tasks", icon: "📋" },
 	{ label: "🚗 Gestion véhicules", to: "/vehicles", icon: "🚗" },
 	{ label: "💬 Communication", to: "/chat", icon: "💬" },
+	{ label: "🗂️ Affectation", to: "/affectation", icon: "🗂️" },
 ];
 
 const Sidebar = () => {

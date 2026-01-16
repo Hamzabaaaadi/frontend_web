@@ -7,6 +7,7 @@ import CoordinatorDashboard from "./pages/coordinateur/Dashboard";
 import TasksAssignment from "./pages/coordinateur/TasksAssignment";
 import Vehicles from "./pages/coordinateur/Vehicles";
 import Chat from "./pages/coordinateur/Communication";
+import Affectation from "./pages/coordinateur/Affectation";
 // Auditeur pages
 import AuditeurDashboard from "./pages/Auditeur/Dashboard";
 import AuditeurTasks from "./pages/Auditeur/Tasks";
@@ -30,6 +31,7 @@ function AppRoutes() {
             <Route path="/tasks" element={<TasksAssignment />} />
             <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/affectation" element={<Affectation />} />
           </>
         ) : role === "superadmin" ? (
           <>
