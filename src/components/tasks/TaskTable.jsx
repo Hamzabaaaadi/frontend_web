@@ -1,6 +1,6 @@
 import React from "react";
 
-const TaskTable = ({ tasks, onAffect, onEdit, onDelete }) => (
+const TaskTable = ({ tasks, onAffect, onEdit, onDelete, onModeChange }) => (
   <div className="task-table-container">
     {tasks.length === 0 ? (
       <div className="empty-tasks-state">
@@ -48,8 +48,9 @@ const TaskTable = ({ tasks, onAffect, onEdit, onDelete }) => (
               </td>
               <td>
                 <select 
-                  defaultValue={task.mode || "Manuel"}
+                  value={task.mode || "Manuel"}
                   className="mode-select"
+                  onChange={(e) => onModeChange ? onModeChange(task, e.target.value) : null}
                 >
                   <option>Manuel</option>
                   <option>Semi-automatisée</option>

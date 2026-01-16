@@ -192,6 +192,37 @@ export async function getAuditeurs() {
   }
 }
 
+export async function getSemiAutoProposals(taskId) {
+  try {
+    const url = `http://localhost:5000/api/semiauto/propose/${taskId}`
+    console.debug('[cordinateurServices] GET', url)
+
+    const r = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      }
+    })
+
+    if (!r.ok) {
+      const text = await r.text()
+      console.error('[cordinateurServices] HTTP error', r.status, text)
+      return null
+    }
+
+    const data = await r.json()
+    console.debug('[cordinateurServices] response', data)
+
+    // 🔹 Retourner le résultat tel quel (brut)
+    return data
+
+  } catch (err) {
+    console.error('cordinateurServices.getSemiAutoProposals failed', err)
+    return null
+  }
+}
+
+
 export async function createAffectation(payload) {
   try {
     const r = await fetch('http://localhost:5000/api/affectations', {
@@ -214,13 +245,14 @@ export async function createAffectation(payload) {
   }
 }
 
-export async function assignTask(taskId, auditeurId, modeText = 'MANUEL') {
+export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
   try {
-    // map mode text to backend enum
-    let mode = 'MANUEL'
+    // map human-readable mode text to backend enum values expected by API
+    // backend accepts: MANUELLE, SEMIAUTO, AUTOMATIQUE_IA
+    let mode = 'MANUELLE'
     const m = (modeText || '').toString().toUpperCase()
-    if (m.includes('SEMI')) mode = 'SEMI_AUTOMATISE'
-    else if (m.includes('IA') || m.includes('AUTOMATISE')) mode = 'AUTOMATISE_IA'
+    if (m.includes('SEMI')) mode = 'SEMIAUTO'
+    else if (m.includes('IA') || m.includes('AUTOMAT')) mode = 'AUTOMATIQUE_IA'
 
     const body = { auditeurId, mode }
     const r = await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {

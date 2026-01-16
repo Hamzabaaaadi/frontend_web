@@ -5,7 +5,6 @@ import { AppRoleProvider, useAppRole } from "./AppRoleContext.jsx";
 // Coordinator pages
 import CoordinatorDashboard from "./pages/coordinateur/Dashboard";
 import TasksAssignment from "./pages/coordinateur/TasksAssignment";
-import Vehicles from "./pages/coordinateur/Vehicles";
 import Chat from "./pages/coordinateur/Communication";
 import Affectation from "./pages/coordinateur/Affectation";
 // Auditeur pages
@@ -29,7 +28,6 @@ function AppRoutes() {
             <Route path="/" element={<CoordinatorDashboard />} />
             <Route path="/dashboard" element={<CoordinatorDashboard />} />
             <Route path="/tasks" element={<TasksAssignment />} />
-            <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/affectation" element={<Affectation />} />
           </>

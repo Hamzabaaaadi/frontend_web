@@ -127,11 +127,58 @@ const TasksAssignment = () => {
       // fetch auditeurs list from backend (falls back to previous local data)
       try {
         setAuditeursLoading(true)
-        // use userSvc to get auditeurs from API and return normalized shape
-        const aResp = await userSvc.getAuditeurs()
-        const alist = Array.isArray(aResp) ? aResp : (aResp && Array.isArray(aResp.users) ? aResp.users : [])
-        setAuditeurs(alist)
-      } catch (e) { console.warn('handleAffect getAuditeurs failed', e.message) }
+        // robust semi-mode check (case-insensitive, partial match)
+        const isSemi = (task && task.mode && task.mode.toString().toLowerCase().includes('semi'))
+        if (isSemi) {
+          // For semi-automatic mode, request proposals for this task and show only those auditeurs
+          try {
+            const tid = task._id || task.id || task
+            console.debug('[TasksAssignment] requesting semiauto proposals for task', tid)
+            console.log('Requesting semi-auto proposals for taskfffffffffffffffffffff', tid)
+            const proposals = await coordSvc.getSemiAutoProposals(tid)
+            console.log('[TasksAssignment] semiauto proposals received', proposals)
+            // proposals may be the raw response object { candidats: [...] } or { candidates: [...] }
+            const arr = Array.isArray(proposals)
+              ? proposals
+              : (proposals && Array.isArray(proposals.candidats) ? proposals.candidats : (proposals && Array.isArray(proposals.candidates) ? proposals.candidates : []))
+            // Normalize each entry (candidate or auditor) into the auditeur-like shape used by the modal
+            const mapped = arr.map((c, idx) => {
+              // c can be { auditor: {...}, auditorId, score } or already an auditor object
+              const a = c && (c.auditor || c.auditeur) ? (c.auditor || c.auditeur) : c
+              const id = String(a?._id || c?.auditorId || a?.id || a?.userId || idx)
+              const prenom = a?.prenom || a?.firstName || ''
+              const nom = a?.nom || a?.lastName || a?.name || ''
+              const name = a?.name || `${prenom} ${nom}`.trim()
+              return {
+                id,
+                userId: a?.userId || '',
+                prenom,
+                nom,
+                name,
+                email: a?.email || '',
+                specialty: a?.specialite || a?.specialty || '',
+                grade: a?.grade || '',
+                score: c?.score || 0,
+                auditorId: c?.auditorId || id,
+                requiresApproval: c?.requiresApproval || c?.requiresApproval === false ? c.requiresApproval : false,
+                reasons: c?.reasons || [],
+                raw: c
+              }
+            })
+            setAuditeurs(mapped)
+          } catch (err) {
+            console.warn('handleAffect getSemiAutoProposals failed', err.message)
+            // Do NOT fallback to full list: keep auditeurs empty so UI shows 'Aucun auditeur proposé'
+            setAuditeurs([])
+          }
+        } else {
+          // Manuel or other modes: load full auditeurs list
+          const aResp = await userSvc.getAuditeurs()
+          const alist = Array.isArray(aResp) ? aResp : (aResp && Array.isArray(aResp.users) ? aResp.users : [])
+          console.debug('[TasksAssignment] auditeurs list loaded (manual)', alist)
+          setAuditeurs(alist)
+        }
+      } catch (e) { console.warn('handleAffect getAuditeurs failed', e.message); setAuditeurs([]) }
       finally { setAuditeursLoading(false) }
 
       if (task.mode === "Automatisé (IA)") {
@@ -139,8 +186,9 @@ const TasksAssignment = () => {
         setAiSuggestions(suggestions);
         setShowSuggestionsModal(true);
       } else if (task.mode === "Semi-automatisée") {
-        const suggestions = generateAutoSuggestions(task);
-        setAiSuggestions(suggestions);
+        // For semi-automated mode we show the same affect modal but the auditeurs list
+        // is populated from the semiauto proposals API (see above).
+        setAiSuggestions([])
         setShowAffectModal(true);
       } else {
         setAiSuggestions([]);
@@ -149,6 +197,21 @@ const TasksAssignment = () => {
       // Do not force page scrolling; modal is presented as overlay and body scroll is locked via effect
     })()
   };
+
+  const handleModeChange = (task, newMode) => {
+    (async () => {
+      try {
+        // update local UI immediately
+        setTasks(prev => prev.map(t => (t._id || t.id) === (task._id || task.id) ? { ...t, mode: newMode } : t))
+        // persist change to backend (normalize id)
+        const id = task._id || task.id || task
+        await coordSvc.updateTask(id, { ...task, mode: newMode })
+      } catch (err) {
+        console.error('handleModeChange error', err)
+        alert('Erreur lors de la mise à jour du mode')
+      }
+    })()
+  }
 
   // Prevent background page scroll when either modal is open (fixes mobile portrait jumps)
   React.useEffect(() => {
@@ -176,6 +239,7 @@ const TasksAssignment = () => {
         ? { ...t, affectations: [...(t.affectations || []), ...newAffectations] }
         : t
     ));
+    console.log('Validated auto suggestions', tasks);
 
     setShowSuggestionsModal(false);
     alert("Suggestions envoyées pour validation !");
@@ -316,12 +380,15 @@ const TasksAssignment = () => {
             ⚠️ Des affectations nécessitent votre validation
           </div>
         )}
+         {console.log('rendering TaskTable with tasks', tasks)}
 
         <TaskTable 
+      
           tasks={tasks} 
           onAffect={handleAffect} 
           onEdit={handleEdit} 
           onDelete={handleDelete} 
+          onModeChange={handleModeChange}
         />
 
         {tasks.filter(t => t.affectations?.length > 0).map(task => (
@@ -419,9 +486,9 @@ const TasksAssignment = () => {
               )}
 
               <div className="auditeurs-selection">
-                <h4>👥 Tous les auditeurs disponibles</h4>
+                <h4>{(selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? '🔎 Auditeurs proposés' : '👥 Tous les auditeurs disponibles'}</h4>
                 <div className="auditeurs-grid">
-                    {(auditeurs && auditeurs.length ? auditeurs : auditeursData).map((auditeur, idx) => {
+                    {(auditeurs && auditeurs.length ? auditeurs : ( (selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? [] : auditeursData )).map((auditeur, idx) => {
                       const audId = String(auditeur.id || auditeur.userId || auditeur._id || idx)
                       const displayName = (auditeur && (auditeur.name || auditeur.prenom || auditeur.nom))
                         ? (auditeur.name || `${auditeur.prenom || ''} ${auditeur.nom || ''}`.trim())
@@ -454,6 +521,9 @@ const TasksAssignment = () => {
                 </div>
                   {auditeursLoading && (
                     <div className="auditeurs-loading">Chargement des auditeurs…</div>
+                  )}
+                  {(selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi') && (!auditeurs || auditeurs.length === 0) && !auditeursLoading) && (
+                    <div className="no-proposals">Aucun auditeur proposé par l'API pour cette tâche.</div>
                   )}
               </div>
             </div>
