@@ -15,7 +15,6 @@ const TaskTable = ({ tasks, onAffect, onEdit, onDelete, onModeChange }) => (
             <th>Tâche</th>
             <th>Type</th>
             <th>Spécialité</th>
-            <th>Période</th>
             <th>Places</th>
             <th>Mode d'affectation</th>
             <th>Actions</th>
@@ -36,13 +35,6 @@ const TaskTable = ({ tasks, onAffect, onEdit, onDelete, onModeChange }) => (
                 <span className="task-type-badge">{task.type}</span>
               </td>
               <td>{task.specialty || (task.specialties && task.specialties.join(", "))}</td>
-              <td>
-                <div className="date-cell">
-                  <span>{task.startDate}</span>
-                  <span className="date-arrow">→</span>
-                  <span>{task.endDate}</span>
-                </div>
-              </td>
               <td>
                 <span className="slots-badge">{task.slots} place(s)</span>
               </td>
