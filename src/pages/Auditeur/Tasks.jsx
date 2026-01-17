@@ -265,6 +265,7 @@ export default function Tasks() {
                 <div className="delegation-just">{d.justification || '-'}</div>
               </div>
               <div className="delegation-actions">
+                {console.log("d.affectationOriginale",delegations )}
                 {/* <button className="btn primary" onClick={(e) => { e.stopPropagation(); const aff = tasks.find(t => t.id === d.affectationOriginale); if (aff) { const tId = aff.tacheId && typeof aff.tacheId === 'object' ? (aff.tacheId._id || aff.tacheId.id) : aff.tacheId;console.log("tesy",tId); openDetails(tId) } else { alert('Tâche introuvable') } }}>Voir tâche</button> */}
                 <button className="btn primary" onClick={(e) => { e.stopPropagation();const tacheId = typeof d.affectationOriginale.tacheId === 'string' ? (d.affectationOriginale.tacheId) : null; tacheId ? openDetails(tacheId) : alert('Tâche introuvable') }}>
                   Voir tâche

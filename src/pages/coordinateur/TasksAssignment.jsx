@@ -133,10 +133,10 @@ const TasksAssignment = () => {
           // For semi-automatic mode, request proposals for this task and show only those auditeurs
           try {
             const tid = task._id || task.id || task
-            console.debug('[TasksAssignment] requesting semiauto proposals for task', tid)
-            console.log('Requesting semi-auto proposals for taskfffffffffffffffffffff', tid)
+            // console.debug('[TasksAssignment] requesting semiauto proposals for task', tid)
+            // console.log('Requesting semi-auto proposals for taskfffffffffffffffffffff', tid)
             const proposals = await coordSvc.getSemiAutoProposals(tid)
-            console.log('[TasksAssignment] semiauto proposals received', proposals)
+            console.log('Received semi-auto proposals:', proposals)
             // proposals may be the raw response object { candidats: [...] } or { candidates: [...] }
             const arr = Array.isArray(proposals)
               ? proposals
@@ -165,6 +165,7 @@ const TasksAssignment = () => {
                 raw: c
               }
             })
+            console.log('[TasksAssignment] semi-auto proposals mapped to auditeurs', mapped)  
             setAuditeurs(mapped)
           } catch (err) {
             console.warn('handleAffect getSemiAutoProposals failed', err.message)
@@ -353,7 +354,7 @@ const TasksAssignment = () => {
       </div>
 
       <Tabs
-        tabs={["🖐️ Affectation manuelle", "🤖 Semi-automatisé", "🧠 Automatisé (IA)"]}
+        tabs={[]}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -380,7 +381,6 @@ const TasksAssignment = () => {
             ⚠️ Des affectations nécessitent votre validation
           </div>
         )}
-         {console.log('rendering TaskTable with tasks', tasks)}
 
         <TaskTable 
       
@@ -540,6 +540,8 @@ const TasksAssignment = () => {
 
       {showSuggestionsModal && selectedTask && (
         <>
+        {console.log('Rendering AI suggestions modal with suggestionsrrrrrrrrrrrrrrrrrrrrr', aiSuggestions)}
+
           <div className="modal-overlay" onClick={() => setShowSuggestionsModal(false)}></div>
           <div className="affect-modal">
             <div className="modal-header">
@@ -552,7 +554,6 @@ const TasksAssignment = () => {
                 <h4>{selectedTask.name}</h4>
                 <p>L'intelligence artificielle a sélectionné les meilleurs auditeurs</p>
               </div>
-
               <div className="ai-suggestions-list">
                 {aiSuggestions.map((sug, idx) => (
                   <div key={sug.auditeurId} className="ai-suggestion-card">

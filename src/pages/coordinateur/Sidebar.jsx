@@ -2,16 +2,27 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const navItems = [
-	{ label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
+	// { label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
 	{ label: "📋 Gestion des tâches", to: "/tasks", icon: "📋" },
-	{ label: "💬 Communication", to: "/chat", icon: "💬" },
+	// { label: "💬 Communication", to: "/chat", icon: "💬" },
 	{ label: "🗂️ Affectation", to: "/affectation", icon: "🗂️" },
 ];
 
 const Sidebar = () => {
 	const location = useLocation();
 	return (
-		<div className="sidebar">
+		<div
+			className="sidebar"
+			style={{
+				position: "fixed",
+				top: 0,
+				left: 0,
+				height: "100vh",
+				overflowY: "auto",
+				width: "240px",
+				zIndex: 1000,
+			}}
+		>
 			<div className="sidebar-header">
 				<h3>🎯 Coordinateur</h3>
 			</div>

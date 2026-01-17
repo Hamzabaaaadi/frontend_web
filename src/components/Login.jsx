@@ -75,11 +75,7 @@ export default function Login() {
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
-        <div style={{ marginTop: 16, color: "#64748b", fontSize: 13 }}>
-          <div>Demo coordinateur: coordinateur@demo.com / demo</div>
-          <div>Demo auditeur: auditeur@demo.com / demo</div>
-          <div>Demo superadmin: superadmin@demo.com / demo</div>
-        </div>
+        
       </form>
     </div>
   );

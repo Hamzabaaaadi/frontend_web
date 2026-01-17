@@ -35,6 +35,23 @@
 .sidebar a{ color:var(--muted-2); text-decoration:none; padding:8px 10px; border-radius:8px }
 .sidebar a.active, .sidebar a:hover{ background:rgba(15,23,42,0.04); color:var(--title) }
 
+/* Superadmin-specific sidebar enhancements */
+.sa-sidebar{ width:240px; position:fixed; top:0; left:0; height:100vh; padding:20px 16px; background: linear-gradient(180deg,#ffffff,#f8fafc); box-shadow: 8px 12px 32px rgba(2,6,23,0.06); border-right:1px solid rgba(15,23,42,0.06); z-index:1100 }
+.sa-sidebar .brand{ font-size:1.05rem; font-weight:800; color:var(--title); padding-bottom:8px }
+.sa-sidebar .brand{ display:flex; align-items:center; gap:12px }
+.sa-sidebar .brand-logo{ width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 8px 22px rgba(79,70,229,0.12) }
+.sa-sidebar .brand-text{ font-size:1rem; font-weight:800; color:var(--title) }
+.sa-sidebar nav{ margin-top:8px; display:flex; flex-direction:column; gap:6px }
+.sa-sidebar a{ display:flex; align-items:center; gap:12px; color:var(--muted-2); padding:10px 12px; border-radius:10px; transition: all .18s ease }
+.sa-sidebar a:hover{ transform: translateX(4px); box-shadow: 0 6px 18px rgba(2,6,23,0.06) }
+.sa-sidebar a.active{ background: linear-gradient(90deg,#4f46e5,#06b6d4); color:#fff; box-shadow: 0 8px 24px rgba(79,70,229,0.12) }
+.sa-sidebar .sa-icon{ width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; color: #94a3b8 }
+.sa-sidebar a.active .sa-icon{ color: #fff }
+.sa-sidebar .sa-label{ font-weight:600 }
+
+/* push main content to the right to avoid overlap */
+.sa-main-content{ margin-left:240px }
+
 .main-content{ flex:1; min-height:100vh; box-sizing:border-box; padding:16px }
 .sa-topbar{ display:flex; align-items:center; justify-content:space-between; background:#fff; padding:12px 16px; border-bottom:1px solid #e6eef8; border-radius:8px }
 .logout-btn{ margin-left:16px; padding:6px 12px; border-radius:6px; border:none; background:#ef4444; color:#fff; font-weight:600; cursor:pointer }
@@ -56,6 +73,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", 
 /* Responsive sidebar collapse */
 @media (max-width: 900px){
   .sidebar{ display:none }
+  .sa-sidebar{ display:none }
   .main-content{ padding:12px }
 }
 

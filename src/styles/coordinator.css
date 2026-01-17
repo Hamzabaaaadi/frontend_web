@@ -24,11 +24,15 @@ body {
   min-height: 100vh;
 }
 .sidebar {
-  width: 220px;
+  width: 240px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  overflow-y: auto;
   background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
   border-right: 2px solid #e5e7eb;
   padding: 0;
-  min-height: 100vh;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -102,6 +106,7 @@ body {
   flex-direction: column;
   min-height: 100vh;
   background: #f6f7fb;
+  margin-left: 240px;
 }
 .navbar {
   background: #fff;

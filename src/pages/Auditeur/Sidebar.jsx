@@ -10,7 +10,18 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation()
   return (
-    <aside className="auditeur-sidebar">
+    <aside
+      className="auditeur-sidebar"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100vh',
+        width: '240px',
+        overflowY: 'auto',
+        zIndex: 1000,
+      }}
+    >
       <div className="auditeur-brand">
         <div className="brand-logo">TM</div>
         <div className="brand-text">Taskme</div>
