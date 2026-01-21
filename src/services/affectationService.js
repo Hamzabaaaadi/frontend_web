@@ -173,6 +173,20 @@ export async function getDelegations() {
   }
 }
 
+// get delegations proposed by the currently connected auditeur (propres)
+export async function getMyDelegationsPropres() {
+  try {
+    const res = await fetch('http://localhost:5000/api/delegations/me/propres', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    if (!res.ok) throw new Error('Network response was not ok')
+    const data = await res.json()
+    return normalizeArray(data)
+  } catch (err) {
+    console.warn('affectationService.getMyDelegationsPropres fallback', err.message)
+    // fallback to same mock list
+    return simulate(mockDelegations)
+  }
+}
+
 function normalizeArray(data) {
   console.log("data received 1: ", data.delegations);
   if (!data) return []
@@ -218,6 +232,34 @@ export async function refuseDelegation(delegationId) {
     mockDelegations[idx].statut = 'REFUSEE'
     mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
     return simulate(mockDelegations[idx])
+  }
+}
+
+export async function deleteDelegation(delegationId) {
+  const headers = { 'Content-Type': 'application/json', ...authHeaders() }
+  try {
+    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}`, { method: 'DELETE', headers })
+    if (!res.ok) throw new Error(`Network response was not ok (${res.status})`)
+    if (res.status === 204) return { success: true, id: delegationId }
+    try { return await res.json() } catch (e) { return { success: true, id: delegationId } }
+  } catch (err) {
+    console.warn('affectationService.deleteDelegation fallback', err.message)
+    const idx = mockDelegations.findIndex(d => d.id === delegationId)
+    if (idx !== -1) mockDelegations.splice(idx, 1)
+    return simulate({ success: true, id: delegationId })
+  }
+}
+
+export async function modifyDelegation(delegationId, payload) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/modifier`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(payload) })
+    if (!res.ok) throw new Error('Network response was not ok')
+    return await res.json()
+  } catch (err) {
+    console.warn('affectationService.modifyDelegation fallback', err.message)
+    const idx = mockDelegations.findIndex(d => d.id === delegationId)
+    if (idx !== -1) mockDelegations[idx] = { ...mockDelegations[idx], ...payload }
+    return simulate(mockDelegations[idx] || null)
   }
 }
 

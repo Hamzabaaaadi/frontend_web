@@ -1,7 +1,5 @@
 import React from "react";
-
-
-
+import Modal from "../../components/common/Modal";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { notificationsData } from "../../data/notifications";
@@ -24,6 +22,7 @@ const Navbar = () => {
   const [profile, setProfile] = useState(defaultProfile);
   const [photoPreview, setPhotoPreview] = useState("");
   const [notifications, setNotifications] = useState(notificationsData);
+  const [confirmAction, setConfirmAction] = useState(null) // {type: 'clearNotifications'|'deleteNotification'|'logout', id}
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -59,9 +58,7 @@ const Navbar = () => {
   };
 
   const clearAllNotifications = () => {
-    if (window.confirm("Voulez-vous vraiment supprimer toutes les notifications ?")) {
-      setNotifications([]);
-    }
+    setConfirmAction({ type: 'clearNotifications' })
   };
 
   return (
@@ -143,7 +140,7 @@ const Navbar = () => {
                     className="notification-delete"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteNotification(notif.id);
+                      setConfirmAction({ type: 'deleteNotification', id: notif.id })
                     }}
                     title="Supprimer"
                   >
@@ -262,21 +259,32 @@ const Navbar = () => {
                   </div>
                 </div>
               </div>
-              <div className="profile-actions">
+                <div className="profile-actions">
                 <button className="btn-primary" onClick={() => setEditMode(true)}>Modifier le profil</button>
                 <button className="btn-cancel" onClick={() => setShowProfile(false)}>Fermer</button>
               </div>
               <div className="profile-footer">
-                <button className="btn-logout" onClick={() => {
-                  if (window.confirm('Voulez-vous vraiment vous déconnecter ?')) {
-                    // Logique de déconnexion ici
-                    window.location.href = '/';
-                  }
-                }}>🚪 Déconnexion</button>
+                <button className="btn-logout" onClick={() => setConfirmAction({ type: 'logout' })}>🚪 Déconnexion</button>
               </div>
             </div>
           )}
         </div>
+      )}
+      {confirmAction && (
+        <Modal isOpen={!!confirmAction} title={confirmAction.type === 'logout' ? 'Confirmer la déconnexion' : 'Confirmer la suppression'} onCancel={() => setConfirmAction(null)} onConfirm={() => {
+          if (confirmAction.type === 'clearNotifications') {
+            setNotifications([])
+          } else if (confirmAction.type === 'deleteNotification') {
+            setNotifications(prev => prev.filter(n => n.id !== confirmAction.id))
+          } else if (confirmAction.type === 'logout') {
+            window.location.href = '/'
+          }
+          setConfirmAction(null)
+        }} confirmText={confirmAction.type === 'logout' ? 'Se déconnecter' : 'Supprimer'}>
+          <div>
+            {confirmAction.type === 'logout' ? 'Voulez-vous vraiment vous déconnecter ?' : (confirmAction.type === 'clearNotifications' ? 'Voulez-vous vraiment supprimer toutes les notifications ?' : 'Voulez-vous vraiment supprimer cette notification ?')}
+          </div>
+        </Modal>
       )}
     </div>
   );
