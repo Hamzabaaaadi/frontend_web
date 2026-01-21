@@ -151,6 +151,7 @@ const TasksAssignment = () => {
               const name = a?.name || `${prenom} ${nom}`.trim()
               return {
                 id,
+                auditeurId: id, // toujours présent et identique à id
                 userId: a?.userId || '',
                 prenom,
                 nom,
@@ -159,7 +160,6 @@ const TasksAssignment = () => {
                 specialty: a?.specialite || a?.specialty || '',
                 grade: a?.grade || '',
                 score: c?.score || 0,
-                auditorId: c?.auditorId || id,
                 requiresApproval: c?.requiresApproval || c?.requiresApproval === false ? c.requiresApproval : false,
                 reasons: c?.reasons || [],
                 raw: c
@@ -469,9 +469,9 @@ const TasksAssignment = () => {
                   <div className="suggestions-list">
                     {aiSuggestions.map(sug => (
                       <div
-                        key={sug.auditeurId}
-                        className={`suggestion-card ${selectedAuditeurs.includes(sug.auditeurId) ? "selected" : ""}`}
-                        onClick={() => toggleAuditeur(sug.auditeurId)}
+                        key={sug.id || sug.auditeurId}
+                        className={`suggestion-card ${selectedAuditeurs.includes(sug.id || sug.auditeurId) ? "selected" : ""}`}
+                        onClick={() => toggleAuditeur(sug.id || sug.auditeurId)}
                       >
                         <div className="suggestion-score">{sug.score}%</div>
                         <div className="suggestion-info">
@@ -489,7 +489,7 @@ const TasksAssignment = () => {
                 <h4>{(selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? '🔎 Auditeurs proposés' : '👥 Tous les auditeurs disponibles'}</h4>
                 <div className="auditeurs-grid">
                     {(auditeurs && auditeurs.length ? auditeurs : ( (selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? [] : auditeursData )).map((auditeur, idx) => {
-                      const audId = String(auditeur.id || auditeur.userId || auditeur._id || idx)
+                      const audId = String(auditeur.id || auditeur.auditeurId || auditeur.userId || auditeur._id || idx)
                       const displayName = (auditeur && (auditeur.name || auditeur.prenom || auditeur.nom))
                         ? (auditeur.name || `${auditeur.prenom || ''} ${auditeur.nom || ''}`.trim())
                         : (auditeur.userId || auditeur.id || `Auditeur ${idx+1}`)

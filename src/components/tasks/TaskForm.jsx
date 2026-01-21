@@ -529,7 +529,8 @@ const TaskForm = ({ onSubmit, initialData, onCancel, isEditing }) => {
           <label className="form-label">Type de tâche</label>
           <select name="type" value={form.type} onChange={handleChange} className="form-select" required>
             <option value="">Sélectionner</option>
-            <option value="Formation">Formation</option>
+            <option value="services_financiers">services_financiers</option>
+            <option value="Pédagogique">Pédagogique</option>
             <option value="Orientation">Orientation</option>
             <option value="Planification">Planification</option>
           </select>

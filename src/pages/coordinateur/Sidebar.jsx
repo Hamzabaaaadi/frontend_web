@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const navItems = [
-	// { label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
+	{ label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
 	{ label: "📋 Gestion des tâches", to: "/tasks", icon: "📋" },
 	// { label: "💬 Communication", to: "/chat", icon: "💬" },
 	{ label: "🗂️ Affectation", to: "/affectation", icon: "🗂️" },
