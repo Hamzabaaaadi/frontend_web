@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Modal from "../../components/common/Modal";
 import { auditeursData, messagesHistorique } from "../../data/messages";
 
 const Communication = () => {
@@ -10,6 +11,7 @@ const Communication = () => {
   });
   const [messages, setMessages] = useState(messagesHistorique);
   const [filterRead, setFilterRead] = useState("all"); // all | read | unread
+  const [confirmAction, setConfirmAction] = useState(null) // {type:'deleteMessage'|'clearHistory', id}
 
   // Gérer la sélection des auditeurs
   const toggleAuditeur = (id) => {
@@ -71,17 +73,23 @@ const Communication = () => {
 
   // Supprimer un message
   const deleteMessage = (id) => {
-    if (window.confirm("Voulez-vous vraiment supprimer ce message ?")) {
-      setMessages(messages.filter((msg) => msg.id !== id));
-    }
+    setConfirmAction({ type: 'deleteMessage', id })
   };
 
   // Supprimer tout l'historique
   const clearAllHistory = () => {
-    if (window.confirm("Voulez-vous vraiment supprimer tout l'historique ? Cette action est irréversible.")) {
-      setMessages([]);
-    }
+    setConfirmAction({ type: 'clearHistory' })
   };
+
+  const handleConfirmAction = () => {
+    if (!confirmAction) return
+    if (confirmAction.type === 'deleteMessage') {
+      setMessages(prev => prev.filter(msg => msg.id !== confirmAction.id))
+    } else if (confirmAction.type === 'clearHistory') {
+      setMessages([])
+    }
+    setConfirmAction(null)
+  }
 
   // Filtrer l'historique
   const filteredMessages = messages.filter((msg) => {
@@ -281,6 +289,11 @@ const Communication = () => {
           </div>
         </div>
       )}
+      <Modal isOpen={!!confirmAction} title={confirmAction?.type === 'clearHistory' ? 'Confirmer la suppression' : 'Confirmer la suppression'} onCancel={() => setConfirmAction(null)} onConfirm={handleConfirmAction} confirmText="Supprimer">
+        <div>
+          {confirmAction?.type === 'clearHistory' ? "Voulez-vous vraiment supprimer tout l'historique ? Cette action est irréversible." : "Voulez-vous vraiment supprimer ce message ?"}
+        </div>
+      </Modal>
     </div>
   );
 };

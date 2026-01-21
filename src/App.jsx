@@ -11,6 +11,7 @@ import Affectation from "./pages/coordinateur/Affectation";
 import AuditeurDashboard from "./pages/Auditeur/Dashboard";
 import AuditeurTasks from "./pages/Auditeur/Tasks";
 import AuditeurProfile from "./pages/Auditeur/Profile";
+import AuditeurDelegations from "./pages/Auditeur/Delegations";
 import Login from "./components/Login";
 // SuperAdmin pages
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
@@ -44,6 +45,7 @@ function AppRoutes() {
             <Route path="/" element={<AuditeurDashboard />} />
             <Route path="/dashboard" element={<AuditeurDashboard />} />
             <Route path="/tasks" element={<AuditeurTasks />} />
+            <Route path="/delegations" element={<AuditeurDelegations />} />
             <Route path="/profile" element={<AuditeurProfile />} />
           </>
         )}

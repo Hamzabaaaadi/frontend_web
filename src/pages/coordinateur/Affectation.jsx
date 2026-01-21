@@ -18,6 +18,8 @@ const Affectation = () => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskDetails, setTaskDetails] = useState(null);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null) // {type: 'validate'|'reject', id}
 
   useEffect(() => {
     getAllAffectations()
@@ -32,31 +34,53 @@ const Affectation = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer cette affectation ?")) return;
-    await deleteAffectation(id);
-    setAffectations(prev => prev.filter(aff => aff._id !== id));
+    // open modal to confirm deletion
+    setConfirmDeleteId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    const id = confirmDeleteId;
+    if (!id) return;
+    try {
+      await deleteAffectation(id);
+      setAffectations(prev => prev.filter(aff => aff._id !== id));
+    } catch (e) {
+      console.error(e);
+      setError('Erreur lors de la suppression.');
+    } finally {
+      setConfirmDeleteId(null);
+    }
   };
 
   const handleValidate = async (id) => {
-    await validateAffectationStatus(id);
-    setAffectations(prev =>
-      prev.map(aff =>
-        aff._id === id ? { ...aff, estValidee: true } : aff
-      )
-    );
-    setSuccessMsg("Affectation validée avec succès !");
-    setTimeout(() => setSuccessMsg(""), 2000);
+    setConfirmAction({ type: 'validate', id });
   };
 
   const handleReject = async (id) => {
-    await rejectAffectationStatus(id);
-    setAffectations(prev =>
-      prev.map(aff =>
-        aff._id === id ? { ...aff, estValidee: false } : aff
-      )
-    );
-    setRejectMsg("Affectation refusée avec succès !");
-    setTimeout(() => setRejectMsg(""), 2000);
+    setConfirmAction({ type: 'reject', id });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    const { type, id } = confirmAction;
+    try {
+      if (type === 'validate') {
+        await validateAffectationStatus(id);
+        setAffectations(prev => prev.map(aff => aff._id === id ? { ...aff, estValidee: true } : aff));
+        setSuccessMsg('Affectation validée avec succès !');
+        setTimeout(() => setSuccessMsg(''), 2000);
+      } else if (type === 'reject') {
+        await rejectAffectationStatus(id);
+        setAffectations(prev => prev.map(aff => aff._id === id ? { ...aff, estValidee: false } : aff));
+        setRejectMsg('Affectation refusée avec succès !');
+        setTimeout(() => setRejectMsg(''), 2000);
+      }
+    } catch (e) {
+      console.error(e);
+      setError('Erreur lors de l\'action.');
+    } finally {
+      setConfirmAction(null);
+    }
   };
 
   const handleShowTaskDetails = async (aff) => {
@@ -145,6 +169,26 @@ const Affectation = () => {
           ))}
         </tbody>
       </table>
+
+      <Modal
+        isOpen={!!confirmDeleteId}
+        title="Confirmer la suppression"
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={handleDeleteConfirm}
+        confirmText="Supprimer"
+      >
+        <div>Voulez-vous vraiment supprimer cette affectation ?</div>
+      </Modal>
+
+      <Modal
+        isOpen={!!confirmAction}
+        title={confirmAction?.type === 'validate' ? 'Confirmer la validation' : 'Confirmer le refus'}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        confirmText={confirmAction?.type === 'validate' ? 'Valider' : 'Refuser'}
+      >
+        <div>{confirmAction?.type === 'validate' ? 'Confirmer la validation de cette affectation ?' : 'Confirmer le refus de cette affectation ?'}</div>
+      </Modal>
 
       {showTaskModal && (
         <Modal

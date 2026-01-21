@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Modal from "../../components/common/Modal";
 import Tabs from "../../components/ui/Tabs";
 import TaskForm from "../../components/tasks/TaskForm";
 import TaskTable from "../../components/tasks/TaskTable";
@@ -20,6 +21,7 @@ const TasksAssignment = () => {
   const [auditeurs, setAuditeurs] = useState([])
   const [auditeursLoading, setAuditeursLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [confirmAction, setConfirmAction] = useState(null) // {type: 'rejectAffect'|'deleteTask', payload}
 
   // Load tasks and auditeurs on mount
   useState(() => { /* keep linter happy if no deps */ })
@@ -286,19 +288,7 @@ const TasksAssignment = () => {
   };
 
   const rejectAffectation = (taskId, affectationId) => {
-    (async () => {
-      if (!window.confirm("Voulez-vous vraiment rejeter cette affectation ?")) return
-      try {
-        await coordSvc.refuseAffectation(affectationId)
-        const tResp = await coordSvc.getTasks()
-        const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
-        setTasks(list)
-        alert('Affectation rejetée !')
-      } catch (err) {
-        console.error('rejectAffectation error', err)
-        alert('Erreur lors du rejet')
-      }
-    })()
+    setConfirmAction({ type: 'rejectAffect', taskId, affectationId })
   };
 
   const toggleAuditeur = (id) => {
@@ -315,21 +305,36 @@ const TasksAssignment = () => {
   };
 
   const handleDelete = (task) => {
-    (async () => {
-      if (!window.confirm(`Voulez-vous vraiment supprimer la tâche "${task.name}" ?`)) return
-      try {
+    setConfirmAction({ type: 'deleteTask', task })
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return
+    const { type } = confirmAction
+    try {
+      if (type === 'rejectAffect') {
+        const { affectationId } = confirmAction
+        await coordSvc.refuseAffectation(affectationId)
+        const tResp = await coordSvc.getTasks()
+        const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
+        setTasks(list)
+        alert('Affectation rejetée !')
+      } else if (type === 'deleteTask') {
+        const task = confirmAction.task
         const id = task._id || task.id || task
         await coordSvc.deleteTask(id)
         const tResp = await coordSvc.getTasks()
         const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
         setTasks(list)
         alert('Tâche supprimée !')
-      } catch (err) {
-        console.error('handleDelete error', err)
-        alert('Erreur lors de la suppression')
       }
-    })()
-  };
+    } catch (err) {
+      console.error('confirm action error', err)
+      alert('Erreur lors de l\'opération')
+    } finally {
+      setConfirmAction(null)
+    }
+  }
 
   const handleCancelEdit = () => {
     setEditingTask(null);
@@ -587,6 +592,18 @@ const TasksAssignment = () => {
           </div>
         </>
       )}
+        <Modal
+          isOpen={!!confirmAction}
+          title={confirmAction?.type === 'deleteTask' ? "Confirmer la suppression" : "Confirmer l'action"}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={handleConfirmAction}
+          confirmText={confirmAction?.type === 'deleteTask' ? 'Supprimer' : 'Confirmer'}
+        >
+          <div>
+            {confirmAction?.type === 'deleteTask' && `Voulez-vous vraiment supprimer la tâche "${confirmAction?.task?.name || ''}" ?`}
+            {confirmAction?.type === 'rejectAffect' && 'Voulez-vous vraiment rejeter cette affectation ?'}
+          </div>
+        </Modal>
     </div>
   );
 };

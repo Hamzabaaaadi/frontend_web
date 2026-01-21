@@ -192,6 +192,24 @@ export default function Tasks() {
     } catch (e) { return iso }
   }
 
+  const statusBadge = (statut) => {
+    const s = (statut || '').toUpperCase()
+    const map = {
+      'ACCEPTEE': { bg: '#ecfdf5', color: '#065f46' },
+      'REFUSEE': { bg: '#fff1f2', color: '#991b1b' },
+      'DELEGUEE': { bg: '#fff7ed', color: '#92400e' },
+      'AFFECTEE': { bg: '#eff6ff', color: '#1e3a8a' },
+      'TERMINEE': { bg: '#f3f4f6', color: '#374151' },
+      'EN_ATTENTE': { bg: '#fffbeb', color: '#92400e' }
+    }
+    const style = map[s] || { bg: '#f8fafc', color: '#0f172a' }
+    return (
+      <span style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 14, background: style.bg, color: style.color, fontSize: 12, fontWeight: 700 }}>
+        {statut || '-'}
+      </span>
+    )
+  }
+
   const closeModal = () => {
     setModalOpen(false)
     setModalType(null)
@@ -210,6 +228,21 @@ export default function Tasks() {
       } else if (modalType === 'refuse') {
         await refuseAffectation(id, modalInput)
         setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, statut: 'REFUSEE', justificatifRefus: modalInput } : t)))
+      } else if (modalType === 'acceptDelegation') {
+        // accept a delegation proposal
+        await acceptDelegation(id)
+        try {
+          const r = await getAffectations()
+          const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : []))
+          setTasks(list.map((it) => ({ ...it, id: it._id || it.id })))
+        } catch (e) {
+          console.error('Erreur rechargement affectations après acceptation de délégation', e)
+        }
+        await loadDelegations()
+      } else if (modalType === 'refuseDelegation') {
+        // refuse a delegation proposal
+        await refuseDelegation(id)
+        await loadDelegations()
       } else if (modalType === 'delegate') {
         if (!modalInput || !modalFromInput) {
           alert('Veuillez saisir les deux IDs (delegateur et destinataire)')
@@ -224,7 +257,16 @@ export default function Tasks() {
           statut: modalStatut
         }
         await createDelegation(payload)
+        // refresh local delegations list
         await loadDelegations()
+        // refresh affectations/tasks to reflect any server-side changes
+        try {
+          const r = await getAffectations()
+          const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : []))
+          setTasks(list.map((it) => ({ ...it, id: it._id || it.id })))
+        } catch (e) {
+          console.error('Erreur rechargement affectations après délégation', e)
+        }
         setToastMessage('Proposition de délégation enregistrée')
         setTimeout(() => setToastMessage(''), 3000)
       } else if (modalType === 'complete') {
@@ -273,8 +315,8 @@ export default function Tasks() {
 
                 {d.statut === 'EN_ATTENTE' && (
                   <>
-                    <button className="btn success" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await acceptDelegation(d.id); const r = await getAffectations(); const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : [])); setTasks(list.map((it) => ({ ...it, id: it._id || it.id }))); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Accepter</button>
-                    <button className="btn danger" onClick={async (e) => { e.stopPropagation(); setActionLoading(d.id); try { await refuseDelegation(d.id); await loadDelegations(); } catch(err){console.error(err)} finally{setActionLoading(null)} }} disabled={actionLoading === d.id}>Refuser</button>
+                    <button className="btn success" onClick={(e) => { e.stopPropagation(); openModal('acceptDelegation', d.id); }} disabled={actionLoading === d.id}>Accepter</button>
+                    <button className="btn danger" onClick={(e) => { e.stopPropagation(); openModal('refuseDelegation', d.id); }} disabled={actionLoading === d.id}>Refuser</button>
                   </>
                 )}
               </div>
@@ -296,11 +338,13 @@ export default function Tasks() {
           <article key={t.id} className="task-card" tabIndex={0} role="button" onClick={() => openDetails(tacheIdVal)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(tacheIdVal); } }}>
             <div className="task-card-body">
               <div className="task-card-head">
-                {/* {console.log("Rendering task22222222", t)} */}
-                <strong className="task-title">Affectation</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong className="task-title">Affectation</strong>
+                  {statusBadge(t.statut)}
+                </div>
                 <div className="task-meta">
                   <div className="muted small">{t.dateAffectation}</div>
-                  <div className="muted small">{t.mode} • {t.statut}</div>
+                  <div className="muted small">{t.mode}</div>
                 </div>
               </div>
 
@@ -324,6 +368,10 @@ export default function Tasks() {
             ? 'Confirmer acceptation'
             : modalType === 'refuse'
             ? 'Motif du refus'
+            : modalType === 'acceptDelegation'
+            ? 'Confirmer acceptation délégation'
+            : modalType === 'refuseDelegation'
+            ? 'Confirmer refus délégation'
             : modalType === 'delegate'
             ? 'Déléguer la tâche'
             : modalType === 'complete'
@@ -333,9 +381,9 @@ export default function Tasks() {
         onCancel={closeModal}
         onConfirm={modalType === 'details' ? closeModal : handleConfirmModal}
         confirmText={
-          modalType === 'accept'
+          modalType === 'accept' || modalType === 'acceptDelegation'
             ? 'Accepter'
-            : modalType === 'refuse'
+            : modalType === 'refuse' || modalType === 'refuseDelegation'
             ? 'Refuser'
             : modalType === 'delegate'
             ? 'Déléguer'
@@ -345,7 +393,9 @@ export default function Tasks() {
         }
       >
         {modalType === 'accept' && <div>Voulez-vous accepter cette tâche ?</div>}
+        {modalType === 'acceptDelegation' && <div>Voulez-vous accepter cette proposition de délégation ?</div>}
         {modalType === 'complete' && <div>Voulez-vous marquer cette tâche comme terminée ?</div>}
+        {modalType === 'refuseDelegation' && <div>Voulez-vous refuser cette proposition de délégation ?</div>}
               {toastMessage && (
                 <div style={{ margin: '8px 0', padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#064e3b' }}>{toastMessage}</div>
               )}
@@ -474,7 +524,7 @@ export default function Tasks() {
       <section style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ margin: 0 }}>Affectations (acceptées )</h4>
-          <div style={{ color: '#6b7280', fontSize: 13 }}>{tasks.filter(t => ['ACCEPTEE','DELEGUEE','AFFECTEE'].includes(t.statut)).length} trouvé(s)</div>
+          <div style={{ color: '#6b7280', fontSize: 13 }}>{tasks.filter(t => ['ACCEPTEE','AFFECTEE'].includes(t.statut)).length} trouvé(s)</div>
         </div>
 
 
@@ -526,7 +576,7 @@ export default function Tasks() {
                     <div style={{ color: '#6b7280' }}>{formatDate(a.dateAffectation)}</div>
                     <div>
                       <div style={{ fontSize: 13, color: '#0f172a' }}>{a.mode}</div>
-                      <div style={{ marginTop: 6 }}><span style={{ padding: '6px 10px', borderRadius: 14, background: a.statut === 'ACCEPTEE' ? '#ecfdf5' : '#fff7ed', color: a.statut === 'ACCEPTEE' ? '#065f46' : '#92400e', fontSize: 12 }}>{a.statut}</span></div>
+                      <div style={{ marginTop: 6 }}>{statusBadge(a.statut)}</div>
                     </div>
                     <div style={{ color: '#0f172a' }}>
                       {/* Affiche le statut de la tâche liée si disponible */}
