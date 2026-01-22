@@ -126,52 +126,33 @@ const TasksAssignment = () => {
     (async () => {
       setSelectedTask(task);
       setSelectedAuditeurs([]);
+      // Clear previous auditeurs to avoid showing stale full list while fetching proposals
+      setAuditeurs([])
       // fetch auditeurs list from backend (falls back to previous local data)
       try {
         setAuditeursLoading(true)
-        // robust semi-mode check (case-insensitive, partial match)
-        const isSemi = (task && task.mode && task.mode.toString().toLowerCase().includes('semi'))
-        if (isSemi) {
-          // For semi-automatic mode, request proposals for this task and show only those auditeurs
+        console.debug('[TasksAssignment] handleAffect start:', { taskId: task && (task._id || task.id), mode: task && task.mode })
+        // Determine mode (manual / semi / auto)
+        const modeText = (task && task.mode && task.mode.toString().toLowerCase()) || ''
+        const isSemi = modeText.includes('semi')
+        const isAuto = modeText.includes('ia') || modeText.includes('autom')
+
+        if (isSemi || isAuto) {
+          // For semi-automatic and automatic IA modes: request proposals and show only those auditeurs
           try {
             const tid = task._id || task.id || task
-            // console.debug('[TasksAssignment] requesting semiauto proposals for task', tid)
-            // console.log('Requesting semi-auto proposals for taskfffffffffffffffffffff', tid)
-            const proposals = await coordSvc.getSemiAutoProposals(tid)
-            console.log('Received semi-auto proposals:', proposals)
-            // proposals may be the raw response object { candidats: [...] } or { candidates: [...] }
-            const arr = Array.isArray(proposals)
-              ? proposals
-              : (proposals && Array.isArray(proposals.candidats) ? proposals.candidats : (proposals && Array.isArray(proposals.candidates) ? proposals.candidates : []))
-            // Normalize each entry (candidate or auditor) into the auditeur-like shape used by the modal
-            const mapped = arr.map((c, idx) => {
-              // c can be { auditor: {...}, auditorId, score } or already an auditor object
-              const a = c && (c.auditor || c.auditeur) ? (c.auditor || c.auditeur) : c
-              const id = String(a?._id || c?.auditorId || a?.id || a?.userId || idx)
-              const prenom = a?.prenom || a?.firstName || ''
-              const nom = a?.nom || a?.lastName || a?.name || ''
-              const name = a?.name || `${prenom} ${nom}`.trim()
-              return {
-                id,
-                auditeurId: id, // toujours présent et identique à id
-                userId: a?.userId || '',
-                prenom,
-                nom,
-                name,
-                email: a?.email || '',
-                specialty: a?.specialite || a?.specialty || '',
-                grade: a?.grade || '',
-                score: c?.score || 0,
-                requiresApproval: c?.requiresApproval || c?.requiresApproval === false ? c.requiresApproval : false,
-                reasons: c?.reasons || [],
-                raw: c
-              }
-            })
-            console.log('[TasksAssignment] semi-auto proposals mapped to auditeurs', mapped)  
+            let proposals = null
+            if (isSemi) proposals = await coordSvc.getSemiAutoProposals(tid)
+            else proposals = await coordSvc.getAutoProposals(tid)
+
+            console.debug('[TasksAssignment] Received proposals (normalized):', proposals)
+            // The service returns a normalized array; ensure we have an array
+            const mapped = Array.isArray(proposals) ? proposals : []
+            console.debug('[TasksAssignment] proposals mapped length =', mapped.length)
             setAuditeurs(mapped)
           } catch (err) {
-            console.warn('handleAffect getSemiAutoProposals failed', err.message)
-            // Do NOT fallback to full list: keep auditeurs empty so UI shows 'Aucun auditeur proposé'
+            console.warn('handleAffect proposals failed', err && err.message ? err.message : err)
+            // keep auditeurs empty so UI shows 'Aucun auditeur proposé'
             setAuditeurs([])
           }
         } else {
@@ -184,15 +165,16 @@ const TasksAssignment = () => {
       } catch (e) { console.warn('handleAffect getAuditeurs failed', e.message); setAuditeurs([]) }
       finally { setAuditeursLoading(false) }
 
-      if (task.mode === "Automatisé (IA)") {
-        const suggestions = generateAutoSuggestions(task);
-        setAiSuggestions(suggestions);
-        setShowSuggestionsModal(true);
-      } else if (task.mode === "Semi-automatisée") {
-        // For semi-automated mode we show the same affect modal but the auditeurs list
-        // is populated from the semiauto proposals API (see above).
+      // Present the affect modal. For Semi and Automatisé(IA) we already loaded proposals into `auditeurs`.
+      const modeText = (task && task.mode && task.mode.toString().toLowerCase()) || ''
+      const isAuto = modeText.includes('ia') || modeText.includes('autom')
+      if (isAuto) {
+        // Automatisé (IA) should follow same structure as Semi-automatisée: show affect modal with proposed auditeurs
         setAiSuggestions([])
-        setShowAffectModal(true);
+        setShowAffectModal(true)
+      } else if (modeText.includes('semi')) {
+        setAiSuggestions([])
+        setShowAffectModal(true)
       } else {
         setAiSuggestions([]);
         setShowAffectModal(true);
@@ -256,8 +238,10 @@ const TasksAssignment = () => {
       }
       try {
         const tid = selectedTask._id || selectedTask.id || selectedTask
-        for (const audId of selectedAuditeurs) {
-          await coordSvc.assignTask(tid, audId, selectedTask.mode)
+        console.debug('handleManualAffect selectedAuditeurs', selectedAuditeurs)
+        for (const audIdRaw of selectedAuditeurs) {
+          console.debug('handleManualAffect assigning raw', audIdRaw)
+          await coordSvc.assignTask(tid, audIdRaw, selectedTask.mode)
         }
         const tResp = await coordSvc.getTasks()
         const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
@@ -292,7 +276,22 @@ const TasksAssignment = () => {
   };
 
   const toggleAuditeur = (id) => {
-    const sid = String(id)
+    // Defensive extraction: if caller passed an object, try to pull an id-like field
+    const extractLocalId = (raw) => {
+      if (raw === null || typeof raw === 'undefined') return ''
+      if (typeof raw === 'string' || typeof raw === 'number') return String(raw).trim()
+      if (typeof raw === 'object') {
+        if (raw.auditeurId) return String(raw.auditeurId)
+        if (raw.id) return String(raw.id)
+        if (raw._id) return String(raw._id)
+        if (raw.userId) return String(raw.userId)
+        if (raw.auditorId) return String(raw.auditorId)
+      }
+      return ''
+    }
+
+    const sid = extractLocalId(id)
+    if (!sid) return
     setSelectedAuditeurs(prev =>
       prev.includes(sid) ? prev.filter(aid => aid !== sid) : [...prev, sid]
     );
@@ -472,45 +471,53 @@ const TasksAssignment = () => {
                 <div className="suggestions-section">
                   <h4>💡 Suggestions automatiques (cliquez pour sélectionner)</h4>
                   <div className="suggestions-list">
-                    {aiSuggestions.map(sug => (
-                      <div
-                        key={sug.id || sug.auditeurId}
-                        className={`suggestion-card ${selectedAuditeurs.includes(sug.id || sug.auditeurId) ? "selected" : ""}`}
-                        onClick={() => toggleAuditeur(sug.id || sug.auditeurId)}
-                      >
-                        <div className="suggestion-score">{sug.score}%</div>
-                        <div className="suggestion-info">
-                          <div className="suggestion-name">{sug.auditeurName}</div>
-                          <div className="suggestion-details">{/* only name displayed per request */}</div>
+                    {aiSuggestions.map(sug => {
+                      const raw = sug && (sug.id || sug.auditeurId || sug._id || sug.userId)
+                      const sugId = raw ? String(raw).trim() : ''
+                      const checked = sugId && selectedAuditeurs.includes(sugId)
+                      return (
+                        <div
+                          key={sugId || `sug-${Math.random()}`}
+                          className={`suggestion-card ${checked ? "selected" : ""}`}
+                          onClick={() => sugId && toggleAuditeur(sugId)}
+                        >
+                          <div className="suggestion-score">{sug.score}%</div>
+                          <div className="suggestion-info">
+                            <div className="suggestion-name">{sug.auditeurName}</div>
+                            <div className="suggestion-details">{/* only name displayed per request */}</div>
+                          </div>
+                          <div className="ai-recommendation">Recommandé par IA</div>
                         </div>
-                        <div className="ai-recommendation">Recommandé par IA</div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
               <div className="auditeurs-selection">
-                <h4>{(selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? '🔎 Auditeurs proposés' : '👥 Tous les auditeurs disponibles'}</h4>
+                <h4>{(selectedTask && (() => { const m = selectedTask.mode && selectedTask.mode.toString().toLowerCase(); return m && (m.includes('semi') || m.includes('ia') || m.includes('autom')); })()) ? '🔎 Auditeurs proposés' : '👥 Tous les auditeurs disponibles'}</h4>
                 <div className="auditeurs-grid">
-                    {(auditeurs && auditeurs.length ? auditeurs : ( (selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi')) ? [] : auditeursData )).map((auditeur, idx) => {
-                      const audId = String(auditeur.id || auditeur.auditeurId || auditeur.userId || auditeur._id || idx)
+                    {(auditeurs && auditeurs.length ? auditeurs : ( (selectedTask && (() => { const m = selectedTask.mode && selectedTask.mode.toString().toLowerCase(); return m && (m.includes('semi') || m.includes('ia') || m.includes('autom')); })()) ? [] : auditeursData )).map((auditeur, idx) => {
+                      // compute a safe id for selection; if not present, selection will be disabled
+                      const audId = auditeur && (auditeur.auditeurId || auditeur.id || auditeur._id || auditeur.userId) ? String(auditeur.auditeurId || auditeur.id || auditeur._id || auditeur.userId).trim() : ''
+                      const canSelect = !!audId
                       const displayName = (auditeur && (auditeur.name || auditeur.prenom || auditeur.nom))
                         ? (auditeur.name || `${auditeur.prenom || ''} ${auditeur.nom || ''}`.trim())
                         : (auditeur.userId || auditeur.id || `Auditeur ${idx+1}`)
-                      const checked = selectedAuditeurs.includes(audId)
+                      const checked = canSelect && selectedAuditeurs.includes(audId)
                       return (
                         <div
-                          key={audId}
+                          key={audId || `aud-${idx}`}
                           className={`auditeur-card ${checked ? "selected" : ""}`}
-                          onClick={() => toggleAuditeur(audId)}
+                          onClick={() => canSelect && toggleAuditeur(audId)}
                         >
                           <div className="auditeur-checkbox">
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={() => {}}
+                              onChange={() => canSelect && toggleAuditeur(audId)}
                               className="checkbox-input"
+                              disabled={!canSelect}
                             />
                           </div>
                           <div className="auditeur-avatar">
@@ -527,7 +534,7 @@ const TasksAssignment = () => {
                   {auditeursLoading && (
                     <div className="auditeurs-loading">Chargement des auditeurs…</div>
                   )}
-                  {(selectedTask && selectedTask.mode && selectedTask.mode.toString().toLowerCase().includes('semi') && (!auditeurs || auditeurs.length === 0) && !auditeursLoading) && (
+                  {(selectedTask && (() => { const m = selectedTask.mode && selectedTask.mode.toString().toLowerCase(); return m && (m.includes('semi') || m.includes('ia') || m.includes('autom')); })() && (!auditeurs || auditeurs.length === 0) && !auditeursLoading) && (
                     <div className="no-proposals">Aucun auditeur proposé par l'API pour cette tâche.</div>
                   )}
               </div>

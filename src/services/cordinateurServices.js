@@ -10,6 +10,30 @@ function authHeaders() {
   }
 }
 
+// Robust id extractor: accept primitives or objects and return a clean string id or empty string
+function extractId(raw) {
+  if (raw === null || typeof raw === 'undefined') return ''
+  if (typeof raw === 'string' || typeof raw === 'number') {
+    const s = String(raw).trim()
+    return s === '' ? '' : s
+  }
+  if (typeof raw === 'object') {
+    // Common nested forms: { $oid: '...' }, { _id: '...' } or Mongoose ObjectId-like
+    if (raw.$oid) return String(raw.$oid)
+    if (raw.$id) return String(raw.$id)
+    if (raw._id) return extractId(raw._id)
+    if (raw.id) return extractId(raw.id)
+    if (raw.auditeurId) return extractId(raw.auditeurId)
+    if (raw.auditorId) return extractId(raw.auditorId)
+    if (raw.userId) return extractId(raw.userId)
+    try {
+      const s = raw.toString()
+      if (s && s !== '[object Object]') return s
+    } catch (e) {}
+  }
+  return ''
+}
+
 const mockTasks = [
   {
     id: 't1',
@@ -213,11 +237,128 @@ export async function getSemiAutoProposals(taskId) {
     const data = await r.json()
     console.debug('[cordinateurServices] response', data)
 
-    // 🔹 Retourner le résultat tel quel (brut)
-    return data
+    // Normalize response into an array of candidates
+    let candidates = []
+    // support multiple shapes: array, { candidats: [...] }, { rapport: { candidats: [...] } }, or single object
+    if (Array.isArray(data)) candidates = data
+    else if (data && Array.isArray(data.candidats)) candidates = data.candidats
+    else if (data && data.rapport && Array.isArray(data.rapport.candidats)) candidates = data.rapport.candidats
+    else if (data && Array.isArray(data.candidates)) candidates = data.candidates
+    else if (data && Array.isArray(data.auditeurs)) candidates = data.auditeurs
+    else if (data && data.rapport && Array.isArray(data.rapport.auditeurs)) candidates = data.rapport.auditeurs
+    else if (data && data.candidats && !Array.isArray(data.candidats)) candidates = [data.candidats]
+    else if (data && data.rapport && data.rapport.candidats && !Array.isArray(data.rapport.candidats)) candidates = [data.rapport.candidats]
+    else if (data && data.candidates && !Array.isArray(data.candidates)) candidates = [data.candidates]
+    else if (data && data.auditeurs && !Array.isArray(data.auditeurs)) candidates = [data.auditeurs]
+    else if (data && data.rapport && data.rapport.auditeurs && !Array.isArray(data.rapport.auditeurs)) candidates = [data.rapport.auditeurs]
+    else if (data && (data.auditeurId || data.auditeur || data.prenom || data.nom)) candidates = [data]
+
+    const normalized = (candidates || []).map((c) => {
+      const aud = c && (c.auditeur || c.auditor) ? (c.auditeur || c.auditor) : c
+      // Prefer an id present on the candidate root (c.auditeurId / c.auditorId) before inspecting nested object
+      const auditeurId = extractId(c?.auditeurId || c?.auditorId || aud?.auditeurId || aud?.auditorId || aud?._id || aud?.id || aud?.userId || aud)
+      const prenom = aud?.prenom || aud?.firstName || ''
+      const nom = aud?.nom || aud?.lastName || aud?.name || ''
+      const name = aud?.name || `${prenom} ${nom}`.trim()
+      const rawScore = typeof c?.score !== 'undefined' ? Number(c.score) : (typeof aud?.score !== 'undefined' ? Number(aud.score) : null)
+      const score = rawScore === null || Number.isNaN(rawScore) ? null : rawScore
+      const scorePercent = score !== null ? (score <= 1 ? Math.round(score * 100) : Math.round(score)) : null
+      return {
+        id: auditeurId,
+        auditeurId,
+        prenom,
+        nom,
+        name,
+        email: aud?.email || '',
+        specialty: aud?.specialite || aud?.specialty || '',
+        grade: aud?.grade || '',
+        score,
+        scorePercent,
+        raw: c
+      }
+    }).filter(item => !!item.auditeurId)
+
+    return normalized
 
   } catch (err) {
     console.error('cordinateurServices.getSemiAutoProposals failed', err)
+    // Fallback: si l'endpoint semiauto n'est pas disponible, essayer l'endpoint IA
+    try {
+      console.debug('[cordinateurServices] fallback to IA proposer')
+      const auto = await getAutoProposals(taskId)
+      return auto
+    } catch (e) {
+      console.error('fallback to getAutoProposals failed', e)
+      return null
+    }
+  }
+}
+
+// Appelle l'endpoint IA qui propose des candidats pour une tâche.
+// Body: { tacheId }
+export async function getAutoProposals(taskId) {
+  try {
+    const url = `http://localhost:5000/api/affectations/proposer-ia`
+    console.debug('[cordinateurServices] POST', url, { tacheId: taskId })
+
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ tacheId: taskId })
+    })
+
+    if (!r.ok) {
+      const text = await r.text()
+      console.error('[cordinateurServices] IA proposer HTTP error', r.status, text)
+      return null
+    }
+
+    const data = await r.json()
+    console.debug('[cordinateurServices] IA proposer response', data)
+
+    // Extract candidates and normalize same as semi-auto
+    let candidates = []
+    if (Array.isArray(data)) candidates = data
+    else if (data && Array.isArray(data.candidats)) candidates = data.candidats
+    else if (data && data.rapport && Array.isArray(data.rapport.candidats)) candidates = data.rapport.candidats
+    else if (data && Array.isArray(data.candidates)) candidates = data.candidates
+    else if (data && Array.isArray(data.auditeurs)) candidates = data.auditeurs
+    else if (data && data.rapport && Array.isArray(data.rapport.auditeurs)) candidates = data.rapport.auditeurs
+    else if (data && data.candidats && !Array.isArray(data.candidats)) candidates = [data.candidats]
+    else if (data && data.rapport && data.rapport.candidats && !Array.isArray(data.rapport.candidats)) candidates = [data.rapport.candidats]
+    else if (data && data.candidates && !Array.isArray(data.candidates)) candidates = [data.candidates]
+    else if (data && data.auditeurs && !Array.isArray(data.auditeurs)) candidates = [data.auditeurs]
+    else if (data && data.rapport && data.rapport.auditeurs && !Array.isArray(data.rapport.auditeurs)) candidates = [data.rapport.auditeurs]
+    else if (data && (data.auditeurId || data.auditeur || data.prenom || data.nom)) candidates = [data]
+
+    const normalized = (candidates || []).map((c) => {
+      const aud = c && (c.auditeur || c.auditor) ? (c.auditeur || c.auditor) : c
+      // Prefer an id present on the candidate root (c.auditeurId / c.auditorId) before inspecting nested object
+      const auditeurId = extractId(c?.auditeurId || c?.auditorId || aud?.auditeurId || aud?.auditorId || aud?._id || aud?.id || aud?.userId || aud)
+      const prenom = aud?.prenom || aud?.firstName || ''
+      const nom = aud?.nom || aud?.lastName || aud?.name || ''
+      const name = aud?.name || `${prenom} ${nom}`.trim()
+      const rawScore = typeof c?.score !== 'undefined' ? Number(c.score) : (typeof aud?.score !== 'undefined' ? Number(aud.score) : null)
+      const score = rawScore === null || Number.isNaN(rawScore) ? null : rawScore
+      const scorePercent = score !== null ? (score <= 1 ? Math.round(score * 100) : Math.round(score)) : null
+      return {
+        id: auditeurId,
+        auditeurId,
+        prenom,
+        nom,
+        name,
+        email: aud?.email || '',
+        specialty: aud?.specialite || aud?.specialty || '',
+        grade: aud?.grade || '',
+        score,
+        scorePercent,
+        raw: c
+      }
+    }).filter(item => !!item.auditeurId)
+
+    return normalized
+  } catch (err) {
+    console.error('cordinateurServices.getAutoProposals failed', err)
     return null
   }
 }
@@ -254,7 +395,14 @@ export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
     if (m.includes('SEMI')) mode = 'SEMIAUTO'
     else if (m.includes('IA') || m.includes('AUTOMAT')) mode = 'AUTOMATIQUE_IA'
 
-    const body = { auditeurId, mode }
+    // Normalize auditeurId and validate before sending
+    const audId = extractId(auditeurId)
+    console.debug('assignTask called with raw:', auditeurId, 'extracted:', audId)
+    if (!audId) {
+      console.error('assignTask invalid auditeurId, aborting send', auditeurId)
+      throw new Error('Invalid auditeurId')
+    }
+    const body = { auditeurId: audId, mode }
     const r = await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
