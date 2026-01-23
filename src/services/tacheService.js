@@ -40,14 +40,24 @@ export async function getTasks() {
   }
 
   try {
-    const res = await fetch('http://localhost:5000/api/taches', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await fetch('http://localhost:5000/api/tasks', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     if (!res.ok) throw new Error('Network response was not ok')
     const data = await res.json()
-    return data
+    // Normalize to an array of tasks
+    let list = []
+    if (Array.isArray(data)) list = data
+    else if (Array.isArray(data.taches)) list = data.taches
+    else if (Array.isArray(data.tasks)) list = data.tasks
+    else if (Array.isArray(data.data)) list = data.data
+    else list = []
+
+    return list.map(t => ({ _id: t._id || t.id, nom: t.nom || t.name || t.label || '' }))
   } catch (err) {
     // Fallback to mock data if API not available
     console.warn('tacheService.getTasks fallback to mock', err.message)
-    return new Promise((resolve) => setTimeout(() => resolve(mockTasks), 300))
+    return new Promise((resolve) => setTimeout(() => resolve(
+      mockTasks.map(t => ({ _id: t.id, nom: t.nom }))
+    ), 300))
   }
 }
 

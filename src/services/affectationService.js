@@ -277,6 +277,24 @@ export async function deleteAffectation(affectationId) {
   }
 }
 
+export async function updateAffectation(affectationId, payload) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}`, {
+        method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
+    try { return await res.json() } catch (e) { return { success: true, id: affectationId } }
+  } catch (err) {
+    console.warn('affectationService.updateAffectation fallback', err.message)
+    // update local mock if present
+    const idx = mockAffectations.findIndex(a => a.id === affectationId || a._id === affectationId)
+    if (idx !== -1) mockAffectations[idx] = { ...mockAffectations[idx], ...payload }
+    return simulate({ success: true, id: affectationId })
+  }
+}
+
 export async function validateAffectationStatus(affectationId) {
   try {
     const res = await fetch(`http://localhost:5000/api/tasks/affectation/${affectationId}/validate`, {

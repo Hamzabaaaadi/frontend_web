@@ -87,6 +87,20 @@ export async function createTask(payload) {
   try {
     // normalize enum-like fields to match backend expectations
     const payloadNormalized = { ...payload }
+    // Normalize statut (UI may use EN_ATTENTE_AFFECTATION etc.)
+    if (payloadNormalized.statut && typeof payloadNormalized.statut === 'string') {
+      const s = payloadNormalized.statut.toString().toUpperCase().trim()
+      const map = {
+        'EN_ATTENTE_AFFECTATION': 'EN_ATTENTE',
+        'EN_ATTENTE': 'EN_ATTENTE',
+        'AFFECTEE': 'AFFECTEE',
+        'EN_COURS': 'EN_COURS',
+        'TERMINEE': 'TERMINEE',
+        'ANNULEE': 'ANNULEE',
+        'CREEE': 'CREEE'
+      }
+      payloadNormalized.statut = map[s] || s
+    }
     if (payloadNormalized.direction && typeof payloadNormalized.direction === 'string') {
       const key = payloadNormalized.direction.toString().toUpperCase().replace(/\s+/g, '_')
       // Map common UI labels like DIRECTION_1 / Direction 2 to backend enums
@@ -129,6 +143,20 @@ export async function updateTask(id, payload) {
   try {
     // normalize enum-like fields similar to createTask
     const payloadNormalized = { ...payload }
+    // Normalize statut (map UI values to backend enum)
+    if (payloadNormalized.statut && typeof payloadNormalized.statut === 'string') {
+      const s = payloadNormalized.statut.toString().toUpperCase().trim()
+      const map = {
+        'EN_ATTENTE_AFFECTATION': 'EN_ATTENTE',
+        'EN_ATTENTE': 'EN_ATTENTE',
+        'AFFECTEE': 'AFFECTEE',
+        'EN_COURS': 'EN_COURS',
+        'TERMINEE': 'TERMINEE',
+        'ANNULEE': 'ANNULEE',
+        'CREEE': 'CREEE'
+      }
+      payloadNormalized.statut = map[s] || s
+    }
     if (payloadNormalized.direction && typeof payloadNormalized.direction === 'string') {
       const key = payloadNormalized.direction.toString().toUpperCase().replace(/\s+/g, '_')
       if (key.startsWith('DIRECTION')) {
