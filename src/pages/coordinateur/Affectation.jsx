@@ -3,9 +3,11 @@ import {
   getAllAffectations,
   deleteAffectation,
   validateAffectationStatus,
-  rejectAffectationStatus
+  rejectAffectationStatus,
+  updateAffectation
 } from "../../services/affectationService";
-import { getTaskById } from "../../services/tacheService";
+import { getTaskById, getTasks } from "../../services/tacheService";
+import { getAuditeurs } from "../../services/userService";
 import Modal from "../../components/common/Modal";
 import "../../styles/affectation.css";
 
@@ -20,6 +22,12 @@ const Affectation = () => {
   const [taskLoading, setTaskLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null) // {type: 'validate'|'reject', id}
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingAff, setEditingAff] = useState(null)
+  const [editForm, setEditForm] = useState({ mode: '', dateAffectation: '', estValidee: false, tacheId: '', auditeurName: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [tasksList, setTasksList] = useState([])
+  const [auditeursList, setAuditeursList] = useState([])
 
   useEffect(() => {
     getAllAffectations()
@@ -31,6 +39,14 @@ const Affectation = () => {
         setError("Erreur lors du chargement des affectations.");
         setLoading(false);
       });
+
+    // fetch tasks and auditeurs for edit selects
+    getTasks().then(d => {
+      const list = Array.isArray(d) ? d : (d.taches || d.tasks || [])
+      setTasksList(list)
+    }).catch(() => {})
+
+    getAuditeurs().then(list => setAuditeursList(list)).catch(() => {})
   }, []);
 
   const handleDelete = async (id) => {
@@ -114,6 +130,14 @@ const Affectation = () => {
     return new Date(dateString).toLocaleString('fr-FR');
   };
 
+  const toLocalDatetimeInput = (isoString) => {
+    if (!isoString) return ''
+    const d = new Date(isoString)
+    const tzOffset = d.getTimezoneOffset() * 60000
+    const localISO = new Date(d - tzOffset).toISOString().slice(0,16)
+    return localISO
+  }
+
   if (loading) return <div>Chargement...</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
 
@@ -160,7 +184,19 @@ const Affectation = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
                   <button className="btn-accept" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#10b981', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleValidate(aff._id)}>Accepter</button>
                   <button className="btn-refuse" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#ef4444', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleReject(aff._id)}>Refuser</button>
-                  {/* <button className="btn-edit" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#f59e42', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} >Modifier</button> */}
+                  <button className="btn-edit" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#f59e42', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => {
+                    // open edit modal
+                    setEditingAff(aff)
+                    setEditForm({
+                      mode: aff.mode || '',
+                      dateAffectation: aff.dateAffectation ? toLocalDatetimeInput(aff.dateAffectation) : '',
+                      estValidee: !!aff.estValidee,
+                      tacheId: aff?.tacheId?._id || aff?.tacheId?.id || (typeof aff.tacheId === 'string' ? aff.tacheId : ''),
+                      auditeurName: (typeof aff.auditeurId === 'object' && aff.auditeurId !== null) ? `${aff.auditeurId.prenom || ''} ${aff.auditeurId.nom || ''}`.trim() : (typeof aff.auditeurId === 'string' ? aff.auditeurId : ''),
+                      statut: aff?.tacheId?.statut || ''
+                    })
+                    setEditModalOpen(true)
+                  }}>Modifier</button>
                   <button className="btn-delete" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#374151', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleDelete(aff._id)}>Supprimer</button>
                   <button className="btn-details" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#2563eb', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleShowTaskDetails(aff)}>Détails tâche</button>
                 </div>
@@ -188,6 +224,131 @@ const Affectation = () => {
         confirmText={confirmAction?.type === 'validate' ? 'Valider' : 'Refuser'}
       >
         <div>{confirmAction?.type === 'validate' ? 'Confirmer la validation de cette affectation ?' : 'Confirmer le refus de cette affectation ?'}</div>
+      </Modal>
+
+      {/* Edit Affectation Modal */}
+      <Modal
+        isOpen={editModalOpen}
+        title={`Modifier l'affectation : ${editingAff?.tacheId?.nom || ''}`}
+        onCancel={() => { setEditModalOpen(false); setEditingAff(null) }}
+        onConfirm={async () => {
+          if (!editingAff) return;
+          setSavingEdit(true)
+
+          // build a partial payload containing only changed fields
+          const partial = {}
+
+          // mode
+          if ((editingAff.mode || '') !== (editForm.mode || '')) partial.mode = editForm.mode || null
+
+          // dateAffectation (compare ISO strings normalized)
+          const origDate = editingAff.dateAffectation ? new Date(editingAff.dateAffectation).toISOString() : null
+          const newDate = editForm.dateAffectation ? new Date(editForm.dateAffectation).toISOString() : null
+          if (origDate !== newDate) partial.dateAffectation = newDate
+
+          // estValidee (boolean)
+          if (Boolean(editingAff.estValidee) !== Boolean(editForm.estValidee)) partial.estValidee = !!editForm.estValidee
+
+          // tacheId (may be object or string)
+          const origTacheId = editingAff?.tacheId?._id || editingAff?.tacheId?.id || (typeof editingAff.tacheId === 'string' ? editingAff.tacheId : '')
+          if ((editForm.tacheId || '') !== (origTacheId || '')) partial.tacheId = editForm.tacheId || null
+
+          // auditeurName (manual string)
+          const origAudName = (typeof editingAff.auditeurId === 'object' && editingAff.auditeurId !== null) ? `${editingAff.auditeurId.prenom || ''} ${editingAff.auditeurId.nom || ''}`.trim() : (typeof editingAff.auditeurId === 'string' ? editingAff.auditeurId : '')
+          if ((editForm.auditeurName || '') !== (origAudName || '')) partial.auditeurName = editForm.auditeurName || null
+
+          // task status (statut on the task object)
+          const origTaskStat = editingAff?.tacheId?.statut || ''
+          const newTaskStat = editForm.statut || ''
+          if ((newTaskStat || '') !== (origTaskStat || '')) partial.tacheStatut = newTaskStat || null
+
+          // if nothing changed, close modal
+          if (Object.keys(partial).length === 0) {
+            setEditModalOpen(false)
+            setEditingAff(null)
+            setSavingEdit(false)
+            return
+          }
+
+          try {
+            await updateAffectation(editingAff._id || editingAff.id, partial)
+            setAffectations(prev => prev.map(a => {
+              if (a._id !== (editingAff._id || editingAff.id) && a.id !== (editingAff._id || editingAff.id)) return a
+              const updated = { ...a, ...partial }
+              // replace tacheId and auditeurId with objects from lists if available for display
+              if (partial.tacheId) {
+                const t = tasksList.find(x => (x._id || x.id) === partial.tacheId)
+                if (t) updated.tacheId = t
+                else updated.tacheId = { _id: partial.tacheId }
+              }
+              if (partial.tacheStatut) {
+                updated.tacheId = updated.tacheId || {}
+                if (typeof updated.tacheId === 'object') updated.tacheId.statut = partial.tacheStatut
+              }
+              if (partial.auditeurName) {
+                updated.auditeurId = partial.auditeurName
+              }
+              return updated
+            }))
+            setEditModalOpen(false)
+            setEditingAff(null)
+          } catch (e) {
+            console.error(e)
+            setError('Erreur lors de la mise à jour de l\'affectation.')
+          } finally {
+            setSavingEdit(false)
+          }
+        }}
+        confirmText={savingEdit ? 'Enregistrement…' : 'Enregistrer'}
+      >
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label>
+            Mode
+            <select value={editForm.mode} onChange={e => setEditForm(f => ({ ...f, mode: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 6 }}>
+              <option value="">-- sélectionner --</option>
+              <option value="MANUEL">MANUEL</option>
+              <option value="SEMI_AUTOMATISE">SEMI_AUTOMATISE</option>
+              <option value="AUTOMATISE">AUTOMATISE</option>
+            </select>
+          </label>
+
+          <label>
+            Tâche
+            <select value={editForm.tacheId} onChange={e => setEditForm(f => ({ ...f, tacheId: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 6 }}>
+              <option value="">-- sélectionner une tâche --</option>
+              {tasksList.map(t => (
+                <option key={t._id || t.id} value={t._id || t.id}>{t.nom || t.name || t.nomTache || t.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Auditeur (saisir manuellement)
+            <input type="text" value={editForm.auditeurName} onChange={e => setEditForm(f => ({ ...f, auditeurName: e.target.value }))} placeholder="Nom de l'auditeur" style={{ width: '100%', padding: 6, marginTop: 6 }} />
+          </label>
+
+          <label>
+            Date d'affectation
+            <input type="datetime-local" value={editForm.dateAffectation} onChange={e => setEditForm(f => ({ ...f, dateAffectation: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 6 }} />
+          </label>
+
+          <label>
+            Statut tâche
+            <select value={editForm.statut || ''} onChange={e => setEditForm(f => ({ ...f, statut: e.target.value }))} style={{ width: '100%', padding: 6, marginTop: 6 }}>
+              <option value="">-- sélectionner --</option>
+              <option value="CREEE">CREEE</option>
+              <option value="EN_ATTENTE_AFFECTATION">EN_ATTENTE_AFFECTATION</option>
+              <option value="AFFECTEE">AFFECTEE</option>
+              <option value="EN_COURS">EN_COURS</option>
+              <option value="TERMINEE">TERMINEE</option>
+              <option value="ANNULEE">ANNULEE</option>
+            </select>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={editForm.estValidee} onChange={e => setEditForm(f => ({ ...f, estValidee: e.target.checked }))} /> Est validée
+          </label>
+        </div>
       </Modal>
 
       {showTaskModal && (
