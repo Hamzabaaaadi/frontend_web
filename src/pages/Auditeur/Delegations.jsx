@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Modal from '../../components/common/Modal'
 import { getMyDelegationsPropres, deleteDelegation, modifyDelegation } from '../../services/affectationService'
+import { getTaskById } from '../../services/tacheService'
 import { getAuditeurs } from '../../services/userService'
 
 const formatDate = (iso) => {
@@ -22,10 +23,12 @@ export default function Delegations() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [taskDetails, setTaskDetails] = useState(null)
+  const [taskDetailsLoading, setTaskDetailsLoading] = useState(false)
   const [form, setForm] = useState({ auditeurPropose: '', justification: '', statut: 'EN_ATTENTE' })
   const [auditeurs, setAuditeurs] = useState([])
-  const [showRaw, setShowRaw] = useState({})
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   const load = async () => {
@@ -46,6 +49,24 @@ export default function Delegations() {
     setEditing(d)
     setForm({ auditeurPropose: d.auditeurPropose && (d.auditeurPropose._id || d.auditeurPropose.id || d.auditeurPropose), justification: d.justification || '', statut: d.statut || 'EN_ATTENTE' })
     setModalOpen(true)
+  }
+
+  const openTaskDetails = async (tacheId) => {
+    setTaskDetails(null)
+    setTaskDetailsLoading(true)
+    try {
+      let data = null
+      if (!tacheId) data = null
+      else {
+        if (typeof tacheId === 'object') data = await getTaskById(tacheId._id || tacheId.id)
+        else data = await getTaskById(tacheId)
+      }
+      setTaskDetails(data)
+      setDetailsOpen(true)
+    } catch (e) {
+      console.error(e)
+      alert('Erreur chargement détails tâche')
+    } finally { setTaskDetailsLoading(false) }
   }
 
   const displayUser = (u) => {
@@ -86,6 +107,8 @@ export default function Delegations() {
     } finally { setActionLoading(null); setConfirmDeleteId(null) }
   }
 
+  const taskDetailsItem = taskDetails && (taskDetails.tache || taskDetails)
+
   if (loading) return <div>Chargement des propositions…</div>
 
   return (
@@ -105,12 +128,18 @@ export default function Delegations() {
               </div>
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button className="btn primary" onClick={() => {
+                  // derive task id supporting multiple shapes
+                  const raw = d && d.affectationOriginale && d.affectationOriginale.tacheId
+                  const tacheId = raw && typeof raw === 'object' ? (raw._id || raw.id || raw) : raw
+                  if (tacheId) openTaskDetails(tacheId)
+                  else alert('Tâche introuvable')
+                }} style={{ background: 'transparent', border: 'none', color: '#2563eb', padding: '6px 10px' }}>Voir tâche</button>
                 <button className="btn" onClick={() => openEdit(d)} style={{ background: '#f8fafc', border: '1px solid #e6eef6' }}>Modifier</button>
                 <button className="btn danger" onClick={() => handleDelete(d.id)} disabled={actionLoading === d.id}>Supprimer</button>
-                <button className="btn" onClick={() => setShowRaw(prev => ({ ...prev, [d.id]: !prev[d.id] }))} style={{ background: '#f8fafc', border: '1px solid #e6eef6' }}>{showRaw[d.id] ? 'Masquer données' : 'Voir données'}</button>
               </div>
             </div>
-            {showRaw[d.id] && <pre style={{ background: '#f8fafc', padding: 8, borderRadius: 6, marginTop: 8, width: '100%', overflowX: 'auto' }}>{JSON.stringify(d, null, 2)}</pre>}
+            
           </div>
         ))}
       </div>
@@ -134,6 +163,26 @@ export default function Delegations() {
             <option value="DELEGUEE">DELEGUEE</option>
           </select>
         </div>
+      </Modal>
+      <Modal isOpen={detailsOpen} title={'Détails tâche'} onCancel={() => setDetailsOpen(false)} onConfirm={() => setDetailsOpen(false)} confirmText={'Fermer'}>
+        {taskDetailsLoading && <div>Chargement détails…</div>}
+        {!taskDetailsLoading && taskDetailsItem && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ marginTop: 0, marginBottom: 6 }}>{taskDetailsItem.nom || taskDetailsItem.name || '—'}</h3>
+                <div style={{ color: '#6b7280', marginBottom: 8 }}>{taskDetailsItem.type || ''}</div>
+                <p style={{ marginTop: 10, lineHeight: 1.45 }}>{taskDetailsItem.description || 'Pas de description disponible.'}</p>
+              </div>
+              <div style={{ minWidth: 160, textAlign: 'right' }}>
+                <div style={{ marginBottom: 8, fontSize: 13, color: '#6b7280' }}>Statut</div>
+                <div style={{ display: 'inline-block', padding: '6px 10px', borderRadius: 14, background: '#f1f5f9', color: '#0f172a', fontWeight: 700 }}>{taskDetailsItem.statut || '—'}</div>
+                <div style={{ marginTop: 12, fontSize: 12, color: '#6b7280' }}><strong>Créée:</strong><br />{taskDetailsItem.dateCreation || taskDetailsItem.date || '-'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+        {!taskDetailsLoading && !taskDetailsItem && <div>Détails non trouvés pour cette tâche.</div>}
       </Modal>
       <Modal isOpen={!!confirmDeleteId} title="Confirmer la suppression" onCancel={() => setConfirmDeleteId(null)} onConfirm={handleDeleteConfirm} confirmText="Supprimer">
         <div>Confirmer la suppression ?</div>

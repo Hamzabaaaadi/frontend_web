@@ -430,7 +430,7 @@ export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
       console.error('assignTask invalid auditeurId, aborting send', auditeurId)
       throw new Error('Invalid auditeurId')
     }
-    const body = { auditeurId: audId, mode }
+    const body = { auditeurId: audId, mode ,estValidee: false}
     const r = await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
