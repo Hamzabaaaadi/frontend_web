@@ -17,7 +17,7 @@ export default function UsersManagement() {
     email: "",
     role: "COORDINATEUR",
     motDePasse: "",
-    estActif: true,
+    estActif: false,
     nombre_des_taches: 0,
 
     // champs Auditeur
@@ -69,7 +69,7 @@ export default function UsersManagement() {
       prenom: u.prenom || "",
       email: u.email || "",
       role: u.role || "COORDINATEUR",
-      estActif: u.estActif ?? true,
+      estActif: u.estActif ?? false,
 
       specialite: u.specialite || "",
       grade: u.grade || "",
@@ -165,6 +165,27 @@ export default function UsersManagement() {
     }
   };
 
+  /* ================= ACTIVATE / DEACTIVATE ================= */
+  const handleActivateUser = async (id) => {
+    try {
+      await svc.updateUser(id, { estActif: true });
+      setUsers(prev => prev.map(u => ( (u._id === id || u.id === id) ? { ...u, estActif: true } : u )));
+    } catch (err) {
+      console.error('Error activating user:', err);
+      alert('Erreur lors de l\'activation du compte.');
+    }
+  }
+
+  const handleDeactivateUser = async (id) => {
+    try {
+      await svc.updateUser(id, { estActif: false });
+      setUsers(prev => prev.map(u => ( (u._id === id || u.id === id) ? { ...u, estActif: false } : u )));
+    } catch (err) {
+      console.error('Error deactivating user:', err);
+      alert('Erreur lors de la désactivation du compte.');
+    }
+  }
+
   /* ================= RENDER ================= */
   return (
     <div className="sa-dashboard">
@@ -189,9 +210,18 @@ export default function UsersManagement() {
               <div key={id} className="sa-card">
                 <strong>{u.nom} {u.prenom} ({u.role})</strong>
                 <div>{u.email}</div>
+                <div style={{ marginTop: 6 }}>
+                  <span style={{ fontSize: 13, color: '#6b7280' }}>Statut :</span>
+                  <span style={{ marginLeft: 8, fontWeight: 700 }}>{u.estActif ? 'Actif' : 'Désactivé'}</span>
+                </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                   <button onClick={() => openEdit(u)} className="btn btn-ghost btn-sm">Éditer</button>
                   <button onClick={() => handleDelete(id)} className="btn btn-danger btn-sm">Supprimer</button>
+                  {u.estActif ? (
+                    <button onClick={() => handleDeactivateUser(id)} className="btn btn-warning btn-sm">Désactiver</button>
+                  ) : (
+                    <button onClick={() => handleActivateUser(id)} className="btn btn-success btn-sm">Activer</button>
+                  )}
                 </div>
               </div>
             )

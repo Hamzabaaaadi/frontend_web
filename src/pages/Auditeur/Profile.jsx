@@ -64,6 +64,8 @@ export default function Profile() {
   const [user, setUser] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ nom: '', prenom: '', email: '', password: '', formation: '' })
+  const [profileImage, setProfileImage] = useState(null)
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -82,6 +84,9 @@ export default function Profile() {
           password: '',
           formation
         })
+          // load existing avatar if present (could be a URL or dataURL)
+          if (u.profileImage) setProfileImage(u.profileImage)
+          else if (u.avatar) setProfileImage(u.avatar)
       })
       .catch(err => console.error(err))
   }, [])
@@ -101,6 +106,35 @@ export default function Profile() {
       const payload = { nom: form.nom, prenom: form.prenom }
       if (form.email) payload.email = form.email
       if (form.password) payload.password = form.password
+
+      let uploadedAvatarUrl = null
+      // If a file was selected, upload it first (multipart/form-data) to /api/users/:id/avatar
+      if (selectedAvatarFile) {
+        try {
+          const userId = (user && (user._id || user.id)) || 'me'
+          const token = localStorage.getItem('basicAuth')
+          const headers = token ? { Authorization: `Basic ${token}` } : {}
+          const formData = new FormData()
+          formData.append('avatar', selectedAvatarFile)
+          const uploadRes = await fetch(`http://localhost:5000/api/users/${userId}/avatar`, {
+            method: 'PUT',
+            headers: { ...headers },
+            body: formData
+          })
+          if (!uploadRes.ok) {
+            const text = await uploadRes.text().catch(() => '')
+            throw new Error(`Avatar upload failed: HTTP ${uploadRes.status}: ${text}`)
+          }
+          const uploadData = await uploadRes.json().catch(() => null)
+          uploadedAvatarUrl = uploadData && uploadData.user && (uploadData.user.avatar || uploadData.user.avatarUrl || uploadData.user.photo || uploadData.user.profileImage) || null
+          if (uploadedAvatarUrl) setProfileImage(uploadedAvatarUrl)
+        } catch (err) {
+          console.error('Failed to upload avatar', err)
+          setMessage('Erreur lors de l\'upload de l\'image')
+          setSaving(false)
+          return
+        }
+      }
       if (form.formation) {
         const arr = String(form.formation).split(',').map(s => s.trim()).filter(Boolean)
         if (arr.length) {
@@ -108,6 +142,15 @@ export default function Profile() {
           // keep legacy single `formation` string for compatibility
           payload.formation = arr.join(', ')
         }
+      }
+      // attach avatar URL to payload if we've uploaded or set it
+      if (uploadedAvatarUrl) {
+        payload.profileImage = uploadedAvatarUrl
+        payload.avatar = uploadedAvatarUrl
+      } else if (profileImage && String(profileImage).startsWith('http')) {
+        // if profileImage is an external URL (not a data URL), include it
+        payload.profileImage = profileImage
+        payload.avatar = profileImage
       }
       console.log('payloadss', payload)
       const res = await updateMyProfile(payload)
@@ -130,10 +173,32 @@ export default function Profile() {
 
       <div style={{ display: 'flex', gap: 24 }}>
         <div style={{ width: 320 }}>
-          <div style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.06)' }}>
-            <div style={{ width: 120, height: 120, borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: '#334155', margin: '0 auto' }}>{user.nom?.charAt(0)}</div>
-            <h3 style={{ textAlign: 'center', marginTop: 12 }}>{user.nom} {user.prenom}</h3>
-            <div style={{ textAlign: 'center', color: '#64748b', marginBottom: 12 }}>{user.role}</div>
+              <div style={{ background: '#fff', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(2,6,23,0.06)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 140, height: 140, borderRadius: '50%', overflow: 'hidden', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: '#334155', boxShadow: '0 6px 18px rgba(2,6,23,0.06)', border: '6px solid rgba(59,130,246,0.06)' }}>
+                    {profileImage ? (
+                      <img src={profileImage} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ width: '100%', textAlign: 'center' }}>{user.nom?.charAt(0)}</div>
+                    )}
+                  </div>
+
+                  {/* Hidden file input + styled button to match design */}
+                  {editing && (
+                    <div style={{ textAlign: 'center' }}>
+                      <input id="profile-file-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                        const f = e.target.files && e.target.files[0]
+                        if (!f) return
+                        setSelectedAvatarFile(f)
+                        const reader = new FileReader()
+                        reader.onload = () => setProfileImage(reader.result)
+                        reader.readAsDataURL(f)
+                      }} />
+                      <label htmlFor="profile-file-input" style={{ display: 'inline-block', marginTop: 6, padding: '10px 16px', borderRadius: 12, background: '#f3f4f6', border: '1px solid #e6eef8', cursor: 'pointer', fontWeight: 700 }}>Choisir une photo</label>
+                      
+                    </div>
+                  )}
+                </div>
 
             <div style={{ display: 'grid', gap: 8 }}>
               <div style={{ fontSize: 13, color: '#64748b' }}>Nom</div>
