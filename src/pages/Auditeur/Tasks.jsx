@@ -1,58 +1,3 @@
-
-import React, { useEffect, useState } from 'react'
-import { getAffectations } from '../../services/affectationService'
-
-export default function Tasks() {
-	const [affectations, setAffectations] = useState([])
-	const [loading, setLoading] = useState(true)
-
-	useEffect(() => {
-		let mounted = true
-		getAffectations()
-			.then(r => {
-				if (!mounted) return
-				const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : []))
-				setAffectations(list)
-			})
-			.catch(() => { if (mounted) setAffectations([]) })
-			.finally(() => { if (mounted) setLoading(false) })
-
-		return () => { mounted = false }
-	}, [])
-
-	if (loading) return <div>Chargement des tâches…</div>
-
-	return (
-		<div>
-			<h2>Mes affectations</h2>
-			{affectations.length === 0 ? (
-				<div>Aucune affectation trouvée.</div>
-			) : (
-				<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-					<thead>
-						<tr>
-							<th style={{ textAlign: 'left', padding: 8 }}>Tâche</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Date</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Statut</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Mode</th>
-						</tr>
-					</thead>
-					<tbody>
-						{affectations.map(a => (
-							<tr key={a._id || a.id} style={{ borderTop: '1px solid #eee' }}>
-								<td style={{ padding: 8 }}>{a?.tacheId?.nom || a.tache || '-'}</td>
-								<td style={{ padding: 8 }}>{a.dateAffectation ? new Date(a.dateAffectation).toLocaleString() : '-'}</td>
-								<td style={{ padding: 8 }}>{a.statut || '-'}</td>
-								<td style={{ padding: 8 }}>{a.mode || '-'}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			)}
-		</div>
-	)
-}
-
 import React, { useState, useEffect } from 'react'
 import { getTasks, getTaskById, completeTask } from '../../services/tacheService'
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
@@ -129,7 +74,7 @@ export default function Tasks() {
   const [modalTaskId, setModalTaskId] = useState(null)
   const [modalInput, setModalInput] = useState('')
   const [modalFromInput, setModalFromInput] = useState('')
-    const [toastMessage, setToastMessage] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
   const [modalJustification, setModalJustification] = useState('')
   const [modalStatut, setModalStatut] = useState('EN_ATTENTE')
   const [delegations, setDelegations] = useState([])
@@ -218,8 +163,6 @@ export default function Tasks() {
                 data = await getTaskById(tacheId)
        
       }
-
-     
 
       setTaskDetails(data)
       setModalType('details')
@@ -364,7 +307,6 @@ export default function Tasks() {
               </div>
               <div className="delegation-actions">
                 {console.log("d.affectationOriginale",delegations )}
-                {/* <button className="btn primary" onClick={(e) => { e.stopPropagation(); const aff = tasks.find(t => t.id === d.affectationOriginale); if (aff) { const tId = aff.tacheId && typeof aff.tacheId === 'object' ? (aff.tacheId._id || aff.tacheId.id) : aff.tacheId;console.log("tesy",tId); openDetails(tId) } else { alert('Tâche introuvable') } }}>Voir tâche</button> */}
                 <button className="btn primary" onClick={(e) => { e.stopPropagation();const tacheId = typeof d.affectationOriginale.tacheId === 'string' ? (d.affectationOriginale.tacheId) : null; tacheId ? openDetails(tacheId) : alert('Tâche introuvable') }}>
                   Voir tâche
                 </button>
@@ -477,7 +419,7 @@ export default function Tasks() {
                 <select value={modalInput} onChange={(e) => setModalInput(e.target.value)} style={{ width: '100%', padding: 8, boxSizing: 'border-box', marginBottom: 8 }}>
                   <option value="">-- choisir un auditeur --</option>
                   {auditeurs.map((u) => (
-                    <option key={u.id} value={u.id}>{u.id} — {u.nom} {u.prenom}</option>
+                    <option key={u.id} value={u.id}> — {u.nom} {u.prenom}</option>
                   ))}
                 </select>
 
@@ -613,7 +555,6 @@ export default function Tasks() {
                   const audLabel = a.auditeurId && typeof a.auditeurId === 'object'
                     ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} `.trim()
                     : (aud ? `${aud.nom} ${aud.prenom} ` : a.auditeurId)
-                    // console.log("audLabel", audLabel);
                   const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
                   const tLabel =  a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.description ) : (a.tacheId || '')
                   return (
@@ -663,11 +604,3 @@ export default function Tasks() {
     </section>
   )
 }
-
-
-
-
-
-
-
-
