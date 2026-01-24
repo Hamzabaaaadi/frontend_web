@@ -51,7 +51,7 @@ export async function createUser(payload) {
     return await r.json()
   } catch (err) {
     console.warn('superAdminService.createUser fallback to mock', err.message)
-    const u = { ...payload, id: uid('u') }
+    const u = { ...payload, id: uid('u'), estActif: payload.estActif === undefined ? false : payload.estActif }
     users = [u, ...users]
     return new Promise((res) => setTimeout(() => res(u), 200))
   }
@@ -81,7 +81,7 @@ export async function register(payload) {
     return await r.json()
   } catch (err) {
     console.warn('superAdminService.register fallback to mock', err.message)
-    const u = { ...payload, id: uid('u') }
+    const u = { ...payload, id: uid('u'), estActif: payload.estActif === undefined ? false : payload.estActif }
     users = [u, ...users]
     return new Promise((res) => setTimeout(() => res(u), 200))
   }
