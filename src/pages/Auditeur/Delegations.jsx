@@ -14,7 +14,7 @@ const formatAff = (a) => {
   // show only useful info: task id (if available) and date — avoid exposing internal affectation id
   const tid = a.tacheId && (typeof a.tacheId === 'string' ? a.tacheId : (a.tacheId._id || a.tacheId.id || ''))
   const date = a.dateAffectation ? formatDate(a.dateAffectation) : ''
-  if (tid) return `Tâche: ${tid}${date ? ' • ' + date : ''}`
+  if (tid) return `affectation acree ${date ? ' • ' + date : ''}`
   return date || '-'
 }
 

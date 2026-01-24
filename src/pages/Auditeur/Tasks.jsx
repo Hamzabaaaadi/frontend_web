@@ -350,12 +350,14 @@ export default function Tasks() {
               {t.justificatifRefus && <div className="muted small">Justif: {t.justificatifRefus}</div>}
             </div>
 
-              <div className="task-actions">
-              <button className="btn success" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('accept', t.id); }}>{actionLoading === t.id ? '…' : 'Accepter'}</button>
-              <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
-              <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
-              <button className="btn" style={{ background: '#eef2ff', color: '#1e40af', marginLeft: 8 }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
-            </div>
+              <div className="task-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                <button className="btn success" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('accept', t.id); }}>{actionLoading === t.id ? '…' : 'Accepter'}</button>
+                <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
+                <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
+                {t.statut === 'ACCEPTEE' && (
+                  <button className="btn" style={{ background: '#eef2ff', color: '#1e40af' }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
+                )}
+              </div>
           </article>
         )})}
       </div>

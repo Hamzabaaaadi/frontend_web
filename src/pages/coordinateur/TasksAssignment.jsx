@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import Tabs from "../../components/ui/Tabs";
 import TaskForm from "../../components/tasks/TaskForm";
 import TaskTable from "../../components/tasks/TaskTable";
+import Modal from '../../components/common/Modal';
+import Chat from '../../components/chat/Chat';
+// ...existing code...
 import * as coordSvc from '../../services/cordinateurServices'
 import * as userSvc from '../../services/userService'
 import { auditeursData } from '../../data/messages'
@@ -9,6 +12,18 @@ import { auditeursData } from '../../data/messages'
 
 const TasksAssignment = () => {
   const [activeTab, setActiveTab] = useState(0);
+  // Discussion popup state
+  const [showDiscussionModal, setShowDiscussionModal] = useState(false);
+  const [discussionTask, setDiscussionTask] = useState(null);
+  // Get connected coordinator id (from localStorage user object)
+  let coordinatorId = 'coordinateur_default';
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      coordinatorId = user._id || user.id || user.userId || user.email || 'coordinateur_default';
+    }
+  } catch {}
   const [tasks, setTasks] = useState([]);
   const [editingTask, setEditingTask] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +38,19 @@ const TasksAssignment = () => {
 
   // Load tasks and auditeurs on mount
   useState(() => { /* keep linter happy if no deps */ })
+
+  // Pour scroll auto sur le message d'erreur d'affectation
+  const errorRef = React.useRef(null);
+  React.useEffect(() => {
+    if (
+      showAffectModal &&
+      selectedTask &&
+      selectedAuditeurs.length > (selectedTask.slots || 1) &&
+      errorRef.current
+    ) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showAffectModal, selectedAuditeurs.length, selectedTask]);
   React.useEffect(() => {
     let mounted = true
     async function load() {
@@ -60,7 +88,7 @@ const TasksAssignment = () => {
           setEditingTask(null)
           alert('Tâche modifiée avec succès !')
         } else {
-          const payload = { ...task, mode: activeTab === 0 ? 'Manuel' : activeTab === 1 ? 'Semi-automatisée' : 'Automatisé (IA)' }
+          const payload = { ...task, mode: activeTab === 0 ? 'Manuel' : activeTab === 1 ? 'Semi-automatisée' : 'Automatisé (IA)', statut: 'AFFECTEE' }
           await coordSvc.createTask(payload)
           const tResp = await coordSvc.getTasks()
           const list = Array.isArray(tResp) ? tResp : (tResp && Array.isArray(tResp.taches) ? tResp.taches : [])
@@ -336,6 +364,12 @@ const TasksAssignment = () => {
     setShowForm(false);
   };
 
+  // Handler for opening discussion popup
+  const handleOpenDiscussion = (task) => {
+    setDiscussionTask(task);
+    setShowDiscussionModal(true);
+  };
+
   return (
     <div className="tasks-page">
       <div className="tasks-header">
@@ -383,13 +417,27 @@ const TasksAssignment = () => {
         )}
 
         <TaskTable 
-      
           tasks={tasks} 
           onAffect={handleAffect} 
           onEdit={handleEdit} 
           onDelete={handleDelete} 
           onModeChange={handleModeChange}
+          onDiscussion={handleOpenDiscussion}
         />
+      {/* Discussion popup per task */}
+      <Modal
+        isOpen={showDiscussionModal}
+        title={discussionTask ? `Discussion - ${discussionTask.name}` : 'Discussion'}
+        onCancel={() => setShowDiscussionModal(false)}
+        onConfirm={() => setShowDiscussionModal(false)}
+        confirmText="Fermer"
+      >
+        <div style={{ minWidth: 320, maxWidth: 480 }}>
+          {discussionTask && (
+            <Chat taskId={discussionTask._id || discussionTask.id} currentUser={coordinatorId} />
+          )}
+        </div>
+      </Modal>
 
         {tasks.filter(t => t.affectations?.length > 0).map(task => (
           <div key={task._id || task.id} className="validation-section">
@@ -463,6 +511,13 @@ const TasksAssignment = () => {
                 <p>Places: {selectedTask.slots} | Mode: {selectedTask.mode}</p>
               </div>
 
+              {/* Message d'attention en rouge si trop d'auditeurs sélectionnés + scroll auto */}
+              {selectedAuditeurs.length > (selectedTask.slots || 1) && (
+                <div ref={errorRef} style={{ color: '#b91c1c', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontWeight: 500 }}>
+                  ⚠️ Vous ne pouvez pas sélectionner plus d'auditeurs que le nombre de places disponibles pour cette tâche ({selectedTask.slots || 1}).
+                </div>
+              )}
+
               {aiSuggestions.length > 0 && (
                 <div className="suggestions-section">
                   <h4>💡 Suggestions automatiques (cliquez pour sélectionner)</h4>
@@ -530,7 +585,7 @@ const TasksAssignment = () => {
 
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setShowAffectModal(false)}>Annuler</button>
-              <button className="btn-primary" onClick={handleManualAffect}>
+              <button className="btn-primary" onClick={handleManualAffect} disabled={selectedAuditeurs.length > (selectedTask.slots || 1)}>
                 Envoyer pour validation ({selectedAuditeurs.length})
               </button>
             </div>
