@@ -23,10 +23,6 @@ const Navbar = () => {
 	const [loadingProfile, setLoadingProfile] = useState(false);
 	const [profileError, setProfileError] = useState(null);
 	const [savingProfile, setSavingProfile] = useState(false);
-	const [notifications, setNotifications] = useState(notificationsData);
-
-	const unreadCount = notifications.filter(n => !n.read).length;
-
 	const handlePhotoChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
@@ -43,26 +39,6 @@ const Navbar = () => {
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setProfile((prev) => ({ ...prev, [name]: value }));
-	};
-
-	const markAsRead = (id) => {
-		setNotifications(notifications.map(n => 
-			n.id === id ? { ...n, read: true } : n
-		));
-	};
-
-	const markAllAsRead = () => {
-		setNotifications(notifications.map(n => ({ ...n, read: true })));
-	};
-
-	const deleteNotification = (id) => {
-		setNotifications(notifications.filter(n => n.id !== id));
-	};
-
-	const clearAllNotifications = () => {
-		if (window.confirm("Voulez-vous vraiment supprimer toutes les notifications ?")) {
-			setNotifications([]);
-		}
 	};
 
 	const handleLogout = () => {
@@ -214,18 +190,7 @@ const Navbar = () => {
 					<Link to="/chat" className="navbar-icon-modern" title="Chat">
 						<span role="img" aria-label="chat">💬</span>
 					</Link>
-					<div 
-						className="navbar-icon-modern" 
-						title="Notifications"
-						onClick={() => {
-							setShowNotifications(!showNotifications);
-							setShowProfile(false);
-						}}
-						style={{ cursor: 'pointer' }}
-					>
-						<span role="img" aria-label="notifications">🔔</span>
-						{unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
-					</div>
+					{/* Icône de notifications supprimée */}
 					<div
 						className="user-avatar"
 						onClick={() => {
@@ -244,60 +209,6 @@ const Navbar = () => {
 			</div>
 
 			{/* Modale des notifications */}
-			{showNotifications && (
-				<div className="notifications-modal">
-					<div className="notifications-header">
-						<h3>🔔 Notifications</h3>
-						{notifications.length > 0 && (
-							<div className="notifications-actions">
-								{unreadCount > 0 && (
-									<button className="btn-link-small" onClick={markAllAsRead}>
-										Tout marquer comme lu
-									</button>
-								)}
-								<button className="btn-link-small text-danger" onClick={clearAllNotifications}>
-									Tout supprimer
-								</button>
-							</div>
-						)}
-					</div>
-
-					<div className="notifications-list">
-						{notifications.length === 0 ? (
-							<div className="notifications-empty">
-								<span className="empty-icon">🔕</span>
-								<p>Aucune notification</p>
-							</div>
-						) : (
-							notifications.map((notif) => (
-								<div 
-									key={notif.id} 
-									className={`notification-item ${notif.read ? 'read' : 'unread'}`}
-									onClick={() => markAsRead(notif.id)}
-								>
-									<div className="notification-icon">{notif.icon}</div>
-									<div className="notification-content">
-										<div className="notification-title">{notif.title}</div>
-										<div className="notification-message">{notif.message}</div>
-										<div className="notification-date">{notif.date}</div>
-									</div>
-									<button 
-										className="notification-delete"
-										onClick={(e) => {
-											e.stopPropagation();
-											deleteNotification(notif.id);
-										}}
-										title="Supprimer"
-									>
-										✕
-									</button>
-									{!notif.read && <span className="unread-dot"></span>}
-								</div>
-							))
-						)}
-					</div>
-				</div>
-			)}
 
 			{/* Modale du profil */}
 			{showProfile && (

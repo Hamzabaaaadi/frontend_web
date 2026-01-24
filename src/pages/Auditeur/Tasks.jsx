@@ -1,59 +1,7 @@
 
-import React, { useEffect, useState } from 'react'
-import { getAffectations } from '../../services/affectationService'
-
-export default function Tasks() {
-	const [affectations, setAffectations] = useState([])
-	const [loading, setLoading] = useState(true)
-
-	useEffect(() => {
-		let mounted = true
-		getAffectations()
-			.then(r => {
-				if (!mounted) return
-				const list = Array.isArray(r) ? r : (r && Array.isArray(r.affectations) ? r.affectations : (r && Array.isArray(r.data) ? r.data : []))
-				setAffectations(list)
-			})
-			.catch(() => { if (mounted) setAffectations([]) })
-			.finally(() => { if (mounted) setLoading(false) })
-
-		return () => { mounted = false }
-	}, [])
-
-	if (loading) return <div>Chargement des tâches…</div>
-
-	return (
-		<div>
-			<h2>Mes affectations</h2>
-			{affectations.length === 0 ? (
-				<div>Aucune affectation trouvée.</div>
-			) : (
-				<table style={{ width: '100%', borderCollapse: 'collapse' }}>
-					<thead>
-						<tr>
-							<th style={{ textAlign: 'left', padding: 8 }}>Tâche</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Date</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Statut</th>
-							<th style={{ textAlign: 'left', padding: 8 }}>Mode</th>
-						</tr>
-					</thead>
-					<tbody>
-						{affectations.map(a => (
-							<tr key={a._id || a.id} style={{ borderTop: '1px solid #eee' }}>
-								<td style={{ padding: 8 }}>{a?.tacheId?.nom || a.tache || '-'}</td>
-								<td style={{ padding: 8 }}>{a.dateAffectation ? new Date(a.dateAffectation).toLocaleString() : '-'}</td>
-								<td style={{ padding: 8 }}>{a.statut || '-'}</td>
-								<td style={{ padding: 8 }}>{a.mode || '-'}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			)}
-		</div>
-	)
-}
 
 import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { getTasks, getTaskById, completeTask } from '../../services/tacheService'
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
@@ -138,6 +86,11 @@ export default function Tasks() {
   const [taskDetails, setTaskDetails] = useState(null)
   const [taskDetailsLoading, setTaskDetailsLoading] = useState(false)
   const [modalCompleteAffId, setModalCompleteAffId] = useState(null)
+  // notifications
+  const [notifications, setNotifications] = useState([])
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const location = useLocation()
 
   const openModal = (type, id) => {
     setModalType(type)
@@ -158,6 +111,41 @@ export default function Tasks() {
     setModalStatut('EN_ATTENTE')
     setModalOpen(true)
   }
+
+  const loadNotifications = async () => {
+    try {
+      setNotifLoading(true)
+      const token = localStorage.getItem('basicAuth')
+      const headers = token ? { Authorization: `Basic ${token}` } : {}
+      const res = await fetch('http://localhost:5000/api/notifications', { method: 'GET', headers })
+      if (!res.ok) {
+        console.error('Failed to load notifications', res.status)
+        setNotifications([])
+        return
+      }
+      const data = await res.json().catch(() => null)
+      const list = Array.isArray(data) ? data : (data && Array.isArray(data.notifications) ? data.notifications : [])
+      setNotifications(list)
+    } catch (err) {
+      console.error('Error loading notifications', err)
+      setNotifications([])
+    } finally {
+      setNotifLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (notifOpen) loadNotifications()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifOpen])
+
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(location.search)
+      if (q.get('showNotifs')) setNotifOpen(true)
+    } catch (e) { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search])
 
   const loadDelegations = async () => {
     try {
@@ -572,6 +560,44 @@ export default function Tasks() {
               </div>
             )}
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
+          </div>
+        )}
+      </Modal>
+
+      {/* Notifications modal */}
+      <Modal
+        isOpen={notifOpen}
+        title={`Notifications (${notifications.length})`}
+        onCancel={() => setNotifOpen(false)}
+        onConfirm={() => setNotifOpen(false)}
+        confirmText="Fermer"
+      >
+        {notifLoading && <div>Chargement notifications…</div>}
+        {!notifLoading && notifications.length === 0 && <div style={{ color: '#64748b' }}>Aucune notification</div>}
+        {!notifLoading && notifications.length > 0 && (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {notifications.map((n) => (
+              <div key={n._id || n.id || Math.random()} style={{ padding: 10, borderRadius: 8, background: n.estLue ? '#fafafa' : '#fff7ed', border: '1px solid #eef2f7' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700 }}>{n.titre || n.type || 'Notification'}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{n.dateEnvoi ? new Date(n.dateEnvoi).toLocaleString() : (n.createdAt ? new Date(n.createdAt).toLocaleString() : '')}</div>
+                </div>
+                <div style={{ marginTop: 6 }}>{n.message || '-'}</div>
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  {!n.estLue && <button className="btn-ghost" onClick={async () => {
+                    try {
+                      const token = localStorage.getItem('basicAuth')
+                      const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+                      // mark as read if backend supports it (best-effort)
+                      await fetch(`http://localhost:5000/api/notifications/${n._id || n.id}/read`, { method: 'PUT', headers })
+                    } catch (e) { console.error(e) }
+                    // local update
+                    setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x))
+                  }}>Marquer comme lue</button>}
+                  {n.destinationId && <button className="btn-ghost" onClick={() => { setNotifOpen(false); /* optionally navigate to related item */ }}>{'Voir'}</button>}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

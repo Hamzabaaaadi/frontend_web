@@ -271,14 +271,18 @@ export async function getSemiAutoProposals(taskId) {
     if (Array.isArray(data)) candidates = data
     else if (data && Array.isArray(data.candidats)) candidates = data.candidats
     else if (data && data.rapport && Array.isArray(data.rapport.candidats)) candidates = data.rapport.candidats
+    else if (data && data.rapportAffectation && Array.isArray(data.rapportAffectation.candidats)) candidates = data.rapportAffectation.candidats
     else if (data && Array.isArray(data.candidates)) candidates = data.candidates
     else if (data && Array.isArray(data.auditeurs)) candidates = data.auditeurs
     else if (data && data.rapport && Array.isArray(data.rapport.auditeurs)) candidates = data.rapport.auditeurs
+    else if (data && data.rapportAffectation && Array.isArray(data.rapportAffectation.auditeurs)) candidates = data.rapportAffectation.auditeurs
     else if (data && data.candidats && !Array.isArray(data.candidats)) candidates = [data.candidats]
     else if (data && data.rapport && data.rapport.candidats && !Array.isArray(data.rapport.candidats)) candidates = [data.rapport.candidats]
+    else if (data && data.rapportAffectation && data.rapportAffectation.candidats && !Array.isArray(data.rapportAffectation.candidats)) candidates = [data.rapportAffectation.candidats]
     else if (data && data.candidates && !Array.isArray(data.candidates)) candidates = [data.candidates]
     else if (data && data.auditeurs && !Array.isArray(data.auditeurs)) candidates = [data.auditeurs]
     else if (data && data.rapport && data.rapport.auditeurs && !Array.isArray(data.rapport.auditeurs)) candidates = [data.rapport.auditeurs]
+    else if (data && data.rapportAffectation && data.rapportAffectation.auditeurs && !Array.isArray(data.rapportAffectation.auditeurs)) candidates = [data.rapportAffectation.auditeurs]
     else if (data && (data.auditeurId || data.auditeur || data.prenom || data.nom)) candidates = [data]
 
     const normalized = (candidates || []).map((c) => {
@@ -327,7 +331,7 @@ export async function getSemiAutoProposals(taskId) {
 export async function getAutoProposals(taskId) {
   try {
     const url = `http://localhost:5000/api/affectations/proposer-ia`
-    console.debug('[cordinateurServices] POST', url, { tacheId: taskId })
+    console.debug('[cordinateurServices] POST attempt (tacheId) to', url, { tacheId: taskId })
 
     const r = await fetch(url, {
       method: 'POST',
@@ -341,8 +345,41 @@ export async function getAutoProposals(taskId) {
       return null
     }
 
-    const data = await r.json()
-    console.debug('[cordinateurServices] IA proposer response', data)
+    // Read response as text first to handle empty or non-JSON bodies gracefully
+    const text = await r.text()
+    let data = null
+    if (!text || text.trim() === '') {
+      console.debug('[cordinateurServices] IA proposer response: empty body (status ' + r.status + ')')
+      // try fallback with alternate body key
+      console.debug('[cordinateurServices] Retrying POST with { taskId } as fallback')
+      const r2 = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ taskId: taskId })
+      })
+      const text2 = await r2.text()
+      if (!text2 || text2.trim() === '') {
+        console.debug('[cordinateurServices] IA proposer fallback response empty (status ' + r2.status + ')')
+        return []
+      }
+      try {
+        const data2 = JSON.parse(text2)
+        console.debug('[cordinateurServices] IA proposer fallback response', data2)
+        // reuse 'data' variable below by assigning
+        data = data2
+      } catch (e) {
+        console.warn('[cordinateurServices] IA proposer fallback returned non-JSON response:', text2)
+        return []
+      }
+    } else {
+      try {
+        data = JSON.parse(text)
+      } catch (e) {
+        console.warn('[cordinateurServices] IA proposer returned non-JSON response:', text)
+        return []
+      }
+      console.debug('[cordinateurServices] IA proposer response', data)
+    }
 
     // Extract candidates and normalize same as semi-auto
     let candidates = []
@@ -384,10 +421,12 @@ export async function getAutoProposals(taskId) {
       }
     }).filter(item => !!item.auditeurId)
 
+    // If normalized is empty, nothing to show — return empty array so frontend can handle it
     return normalized
   } catch (err) {
     console.error('cordinateurServices.getAutoProposals failed', err)
-    return null
+    // return empty array on error so UI can handle gracefully
+    return []
   }
 }
 
