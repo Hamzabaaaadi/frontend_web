@@ -1,11 +1,10 @@
-
-
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getTasks, getTaskById, completeTask } from '../../services/tacheService'
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
+import Chat from '../../components/Chat/Chat'
 
 const cardStyle = {
   background: '#fff',
@@ -76,7 +75,7 @@ export default function Tasks() {
   const [modalTaskId, setModalTaskId] = useState(null)
   const [modalInput, setModalInput] = useState('')
   const [modalFromInput, setModalFromInput] = useState('')
-    const [toastMessage, setToastMessage] = useState('')
+  const [toastMessage, setToastMessage] = useState('')
   const [modalJustification, setModalJustification] = useState('')
   const [modalStatut, setModalStatut] = useState('EN_ATTENTE')
   const [delegations, setDelegations] = useState([])
@@ -205,8 +204,6 @@ export default function Tasks() {
                 data = await getTaskById(tacheId)
        
       }
-
-     
 
       setTaskDetails(data)
       setModalType('details')
@@ -351,7 +348,6 @@ export default function Tasks() {
               </div>
               <div className="delegation-actions">
                 {console.log("d.affectationOriginale",delegations )}
-                {/* <button className="btn primary" onClick={(e) => { e.stopPropagation(); const aff = tasks.find(t => t.id === d.affectationOriginale); if (aff) { const tId = aff.tacheId && typeof aff.tacheId === 'object' ? (aff.tacheId._id || aff.tacheId.id) : aff.tacheId;console.log("tesy",tId); openDetails(tId) } else { alert('Tâche introuvable') } }}>Voir tâche</button> */}
                 <button className="btn primary" onClick={(e) => { e.stopPropagation();const tacheId = typeof d.affectationOriginale.tacheId === 'string' ? (d.affectationOriginale.tacheId) : null; tacheId ? openDetails(tacheId) : alert('Tâche introuvable') }}>
                   Voir tâche
                 </button>
@@ -395,11 +391,14 @@ export default function Tasks() {
               {t.justificatifRefus && <div className="muted small">Justif: {t.justificatifRefus}</div>}
             </div>
 
-            <div className="task-actions">
-              <button className="btn success" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('accept', t.id); }}>{actionLoading === t.id ? '…' : 'Accepter'}</button>
-              <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
-              <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
-            </div>
+              <div className="task-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                <button className="btn success" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('accept', t.id); }}>{actionLoading === t.id ? '…' : 'Accepter'}</button>
+                <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
+                <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
+                {t.statut === 'ACCEPTEE' && (
+                  <button className="btn" style={{ background: '#eef2ff', color: '#1e40af' }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
+                )}
+              </div>
           </article>
         )})}
       </div>
@@ -463,7 +462,7 @@ export default function Tasks() {
                 <select value={modalInput} onChange={(e) => setModalInput(e.target.value)} style={{ width: '100%', padding: 8, boxSizing: 'border-box', marginBottom: 8 }}>
                   <option value="">-- choisir un auditeur --</option>
                   {auditeurs.map((u) => (
-                    <option key={u.id} value={u.id}>{u.id} — {u.nom} {u.prenom}</option>
+                    <option key={u.id} value={u.id}> — {u.nom} {u.prenom}</option>
                   ))}
                 </select>
 
@@ -562,6 +561,11 @@ export default function Tasks() {
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
           </div>
         )}
+        {modalType === 'chat' && (
+          <div>
+            <Chat taskId={modalTaskId} currentUser={modalFromInput} />
+          </div>
+        )}
       </Modal>
 
       {/* Notifications modal */}
@@ -632,7 +636,6 @@ export default function Tasks() {
                   const audLabel = a.auditeurId && typeof a.auditeurId === 'object'
                     ? `${a.auditeurId.nom || ''} ${a.auditeurId.prenom || ''} `.trim()
                     : (aud ? `${aud.nom} ${aud.prenom} ` : a.auditeurId)
-                    // console.log("audLabel", audLabel);
                   const tIdVal = a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId._id || a.tacheId.id) : a.tacheId
                   const tLabel =  a.tacheId && typeof a.tacheId === 'object' ? (a.tacheId.description ) : (a.tacheId || '')
                   return (
@@ -669,6 +672,9 @@ export default function Tasks() {
                     <div style={{ textAlign: 'center' }}>
                       <button onClick={() => openDetails(tIdVal)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff' }}>Voir</button>
                     </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <button onClick={(e) => { e.stopPropagation(); setModalFromInput(audLabel || audIdVal || ''); setModalTaskId(tIdVal || a.id); setModalType('chat'); setModalOpen(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#eef2ff', color: '#1e40af' }}>Discussion</button>
+                    </div>
                   </div>
                   )
                 })}
@@ -679,11 +685,3 @@ export default function Tasks() {
     </section>
   )
 }
-
-
-
-
-
-
-
-
