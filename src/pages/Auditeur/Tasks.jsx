@@ -3,6 +3,7 @@ import { getTasks, getTaskById, completeTask } from '../../services/tacheService
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
+import Chat from '../../components/Chat/Chat'
 
 const cardStyle = {
   background: '#fff',
@@ -352,10 +353,11 @@ export default function Tasks() {
               {t.justificatifRefus && <div className="muted small">Justif: {t.justificatifRefus}</div>}
             </div>
 
-            <div className="task-actions">
+              <div className="task-actions">
               <button className="btn success" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('accept', t.id); }}>{actionLoading === t.id ? '…' : 'Accepter'}</button>
               <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
               <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
+              <button className="btn" style={{ background: '#eef2ff', color: '#1e40af', marginLeft: 8 }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
             </div>
           </article>
         )})}
@@ -519,6 +521,11 @@ export default function Tasks() {
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
           </div>
         )}
+        {modalType === 'chat' && (
+          <div>
+            <Chat taskId={modalTaskId} currentUser={modalFromInput} />
+          </div>
+        )}
       </Modal>
 
       <section style={{ marginTop: 24 }}>
@@ -587,6 +594,9 @@ export default function Tasks() {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <button onClick={() => openDetails(tIdVal)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff' }}>Voir</button>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <button onClick={(e) => { e.stopPropagation(); setModalFromInput(audLabel || audIdVal || ''); setModalTaskId(tIdVal || a.id); setModalType('chat'); setModalOpen(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#eef2ff', color: '#1e40af' }}>Discussion</button>
                     </div>
                   </div>
                   )
