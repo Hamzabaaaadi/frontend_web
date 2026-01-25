@@ -29,10 +29,13 @@ export default function SuperAdminDashboard() {
           const basic = localStorage.getItem('basicAuth')
           const headers = { 'Content-Type': 'application/json' }
           if (basic) headers.Authorization = `Basic ${basic}`
-          const r = await fetch('http://localhost:5000/api/delegations', { headers })
-          if (r.ok) {
-            const d = await r.json()
+          const API = import.meta.env.VITE_API_URL
+          try {
+            const r2 = await axios.get(`${API}/api/delegations`, { headers })
+            const d = r2?.data || null
             delegations = Array.isArray(d) ? d : (d && Array.isArray(d.delegations) ? d.delegations : [])
+          } catch (e) {
+            // ignore
           }
         } catch (e) { /* ignore */ }
         const delegationCounts = delegations.reduce((acc, d) => {

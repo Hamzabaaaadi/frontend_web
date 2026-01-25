@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from "react";
+import axios from 'axios'
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from "chart.js";
 
@@ -85,9 +86,9 @@ const Dashboard = () => {
       setLoadingCount(true);
       setCountError(null);
       try {
-        const res = await fetch("http://localhost:5000/api/tasks/count", { signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const API = import.meta.env.VITE_API_URL
+        const res = await axios.get(`${API}/api/tasks/count`, { signal })
+        const data = res.data
         if (data && typeof data.count === 'number') {
           setTotalTasks(data.count);
         }

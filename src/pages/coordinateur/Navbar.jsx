@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from 'axios'
 import { Link } from "react-router-dom";
 
 
@@ -62,19 +63,9 @@ const Navbar = () => {
 				const headers = token ? { Authorization: `Basic ${token}` } : {};
 				const form = new FormData();
 				form.append('avatar', selectedAvatarFile);
-				const uploadRes = await fetch(`http://localhost:5000/api/users/${userId}/avatar`, {
-					method: 'PUT',
-					headers: {
-						...headers,
-						// Do NOT set Content-Type when using FormData
-					},
-					body: form,
-				});
-				if (!uploadRes.ok) {
-					const text = await uploadRes.text();
-					throw new Error(`Avatar upload failed: HTTP ${uploadRes.status}: ${text}`);
-				}
-				const uploadData = await uploadRes.json();
+					const API = import.meta.env.VITE_API_URL
+					const uploadRes = await axios.put(`${API}/api/users/${userId}/avatar`, form, { headers: { ...headers } })
+					const uploadData = uploadRes.data
 				// according to spec response contains { message, user: { ..., avatar: 'https://...' } }
 				uploadedAvatarUrl = uploadData.user && (uploadData.user.avatar || uploadData.user.avatarUrl || uploadData.user.photo) || null;
 				if (uploadedAvatarUrl) {
@@ -103,21 +94,9 @@ const Navbar = () => {
 				body.photo = uploadedAvatarUrl;
 			}
 
-			const res = await fetch('http://localhost:5000/api/users/me', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					...headers,
-				},
-				body: JSON.stringify(body),
-			});
-
-			if (!res.ok) {
-				const text = await res.text();
-				throw new Error(`HTTP ${res.status}: ${text}`);
-			}
-
-			const data = await res.json();
+			const API = import.meta.env.VITE_API_URL
+			const res = await axios.put(`${API}/api/users/me`, body, { headers: { 'Content-Type': 'application/json', ...headers } })
+			const data = res.data
 			const u = data.user || data;
 			const name = `${u.prenom || ''} ${u.nom || ''}`.trim() || u.email || profile.name;
 			setProfile((prev) => ({
@@ -148,18 +127,9 @@ const Navbar = () => {
 			try {
 				const token = localStorage.getItem('basicAuth');
 				const headers = token ? { Authorization: `Basic ${token}` } : {};
-				const res = await fetch('http://localhost:5000/api/users/me', {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-						...headers,
-					},
-				});
-				if (!res.ok) {
-					const text = await res.text();
-					throw new Error(`HTTP ${res.status}: ${text}`);
-				}
-				const data = await res.json();
+				const API = import.meta.env.VITE_API_URL
+				const res = await axios.get(`${API}/api/users/me`, { headers: { 'Content-Type': 'application/json', ...headers } })
+				const data = res.data
 				const u = data.user || data;
 				const name = `${u.prenom || ''} ${u.nom || ''}`.trim() || u.email || profile.name;
 				setProfile((prev) => ({

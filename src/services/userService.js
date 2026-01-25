@@ -1,4 +1,6 @@
-const API_URL = 'http://localhost:5000/api/users/auditeurs'
+import axios from 'axios'
+
+const API = import.meta.env.VITE_API_URL
 
 const mockAuditeurs = [
   { id: 'u12', nom: 'Ali', prenom: 'Ben', email: 'ali@example.com', specialty: 'Auditeur pédagogique', grade: 'A' },
@@ -34,20 +36,9 @@ function normalizeAuditeur(u) {
 
 export async function getAuditeurs() {
   try {
-    const res = await fetch(API_URL, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      }
-    })
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`)
-    }
-
-    const data = await res.json()
-    const auditeurs = Array.isArray(data.auditeurs) ? data.auditeurs : []
-
+    const res = await axios.get(`${API}/api/users/auditeurs`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = res.data
+    const auditeurs = Array.isArray(data.auditeurs) ? data.auditeurs : (Array.isArray(data) ? data : [])
     return auditeurs.map(normalizeAuditeur)
 
   } catch (err) {

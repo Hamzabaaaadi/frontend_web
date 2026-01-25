@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 import Modal from '../../components/common/Modal'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -20,9 +21,10 @@ export default function Sidebar() {
         try {
           const token = localStorage.getItem('basicAuth');
           const headers = token ? { Authorization: `Basic ${token}` } : {};
-          const res = await fetch('http://localhost:5000/api/users/all', { method: 'GET', headers });
-          if (!res.ok) return;
-          const data = await res.json();
+          const API = import.meta.env.VITE_API_URL
+          const res = await axios.get(`${API}/api/users/all`, { headers });
+          if (!res) return;
+          const data = res.data;
           setUsers(Array.isArray(data) ? data : (data && Array.isArray(data.users) ? data.users : []));
         } catch (e) {
           // ignore
@@ -57,7 +59,8 @@ export default function Sidebar() {
       const payload = { type: createForm.type, titre: createForm.titre, message: createForm.message, sendEmail: !!createForm.sendEmail };
       if (destinataireId && (Array.isArray(destinataireId) ? destinataireId.length > 0 : destinataireId)) payload.destinataireId = destinataireId;
       if (createForm.tacheId) payload.data = { tacheId: createForm.tacheId };
-      await fetch('http://localhost:5000/api/notifications', { method: 'POST', headers, body: JSON.stringify(payload) });
+      const API = import.meta.env.VITE_API_URL
+      await axios.post(`${API}/api/notifications`, payload, { headers });
       setCreateOpen(false);
       setCreateForm({ destinataire: '', type: 'AFFECTATION', titre: '', message: '', tacheId: '', sendEmail: false });
     } catch (e) {

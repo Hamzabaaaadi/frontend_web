@@ -10,6 +10,9 @@ function authHeaders() {
   }
 }
 
+import axios from 'axios'
+const API = import.meta.env.VITE_API_URL
+
 // Robust id extractor: accept primitives or objects and return a clean string id or empty string
 function extractId(raw) {
   if (raw === null || typeof raw === 'undefined') return ''
@@ -63,9 +66,8 @@ const mockAffectations = [
 
 export async function getTasks() {
   try {
-    const r = await fetch('http://localhost:5000/api/tasks', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/tasks`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.getTasks fallback', err.message)
     return new Promise((res) => setTimeout(() => res(mockTasks), 250))
@@ -74,9 +76,8 @@ export async function getTasks() {
 
 export async function getTaskById(id) {
   try {
-    const r = await fetch(`http://localhost:5000/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.getTaskById fallback', err.message)
     return new Promise((res) => setTimeout(() => res(mockTasks.find(t => t.id === id) || null), 200))
@@ -119,18 +120,8 @@ export async function createTask(payload) {
       }
     }
     console.debug('cordinateurServices.createTask payload', payloadNormalized)
-    const r = await fetch('http://localhost:5000/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payloadNormalized)
-    })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) {}
-      console.error('createTask HTTP error', r.status, body)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.post(`${API}/api/tasks`, payloadNormalized, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.createTask fallback', err.message)
     const item = { ...payload, id: `t_${Math.random().toString(36).slice(2,9)}` }
@@ -172,18 +163,8 @@ export async function updateTask(id, payload) {
         else payloadNormalized.direction = 'RABAT_CASA'
       }
     }
-    const r = await fetch(`http://localhost:5000/api/tasks/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payloadNormalized)
-    })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) {}
-      console.error('updateTask HTTP error', r.status, body)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.put(`${API}/api/tasks/${id}`, payloadNormalized, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.updateTask fallback', err.message)
     const idx = mockTasks.findIndex(t => t.id === id)
@@ -194,13 +175,7 @@ export async function updateTask(id, payload) {
 
 export async function deleteTask(id) {
   try {
-    const r = await fetch(`http://localhost:5000/api/tasks/${id}`, { method: 'DELETE', headers: { ...authHeaders() } })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) {}
-      console.error('deleteTask HTTP error', r.status, body)
-      throw new Error('Network')
-    }
+    await axios.delete(`${API}/api/tasks/${id}`, { headers: { ...authHeaders() } })
     return true
   } catch (err) {
     console.warn('cordinateurServices.deleteTask fallback', err.message)
@@ -212,9 +187,8 @@ export async function deleteTask(id) {
 
 export async function getAffectations() {
   try {
-    const r = await fetch('http://localhost:5000/api/affectations/me', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/affectations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.getAffectations fallback', err.message)
     return new Promise((res) => setTimeout(() => res(mockAffectations), 200))
@@ -223,9 +197,8 @@ export async function getAffectations() {
 
 export async function getAuditeurs() {
   try {
-    const r = await fetch('http://localhost:5000/api/auditeurs', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    const data = await r.json()
+    const r = await axios.get(`${API}/api/auditeurs`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = r.data
     const arr = Array.isArray(data) ? data : (data && Array.isArray(data.auditeurs) ? data.auditeurs : (data && Array.isArray(data.users) ? data.users : []))
     // normalize similar to userService
     return arr.map(u => ({
@@ -246,23 +219,10 @@ export async function getAuditeurs() {
 
 export async function getSemiAutoProposals(taskId) {
   try {
-    const url = `http://localhost:5000/api/semiauto/propose/${taskId}`
+    const url = `${API}/api/semiauto/propose/${taskId}`
     console.debug('[cordinateurServices] GET', url)
-
-    const r = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders()
-      }
-    })
-
-    if (!r.ok) {
-      const text = await r.text()
-      console.error('[cordinateurServices] HTTP error', r.status, text)
-      return null
-    }
-
-    const data = await r.json()
+    const r = await axios.get(url, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = r.data
     console.debug('[cordinateurServices] response', data)
 
     // Normalize response into an array of candidates
@@ -330,55 +290,15 @@ export async function getSemiAutoProposals(taskId) {
 // Body: { tacheId }
 export async function getAutoProposals(taskId) {
   try {
-    const url = `http://localhost:5000/api/affectations/proposer-ia`
+    const url = `${API}/api/affectations/proposer-ia`
     console.debug('[cordinateurServices] POST attempt (tacheId) to', url, { tacheId: taskId })
-
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ tacheId: taskId })
-    })
-
-    if (!r.ok) {
-      const text = await r.text()
-      console.error('[cordinateurServices] IA proposer HTTP error', r.status, text)
-      return null
-    }
-
-    // Read response as text first to handle empty or non-JSON bodies gracefully
-    const text = await r.text()
-    let data = null
-    if (!text || text.trim() === '') {
-      console.debug('[cordinateurServices] IA proposer response: empty body (status ' + r.status + ')')
-      // try fallback with alternate body key
-      console.debug('[cordinateurServices] Retrying POST with { taskId } as fallback')
-      const r2 = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ taskId: taskId })
-      })
-      const text2 = await r2.text()
-      if (!text2 || text2.trim() === '') {
-        console.debug('[cordinateurServices] IA proposer fallback response empty (status ' + r2.status + ')')
-        return []
-      }
-      try {
-        const data2 = JSON.parse(text2)
-        console.debug('[cordinateurServices] IA proposer fallback response', data2)
-        // reuse 'data' variable below by assigning
-        data = data2
-      } catch (e) {
-        console.warn('[cordinateurServices] IA proposer fallback returned non-JSON response:', text2)
-        return []
-      }
-    } else {
-      try {
-        data = JSON.parse(text)
-      } catch (e) {
-        console.warn('[cordinateurServices] IA proposer returned non-JSON response:', text)
-        return []
-      }
-      console.debug('[cordinateurServices] IA proposer response', data)
+    let res = await axios.post(url, { tacheId: taskId }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    let data = res.data
+    if (!data || (typeof data === 'string' && data.trim() === '')) {
+      console.debug('[cordinateurServices] IA proposer response empty, retrying with { taskId }')
+      res = await axios.post(url, { taskId: taskId }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+      data = res.data
+      if (!data || (typeof data === 'string' && data.trim() === '')) return []
     }
 
     // Extract candidates and normalize same as semi-auto
@@ -433,18 +353,8 @@ export async function getAutoProposals(taskId) {
 
 export async function createAffectation(payload) {
   try {
-    const r = await fetch('http://localhost:5000/api/affectations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) {}
-      console.error('createAffectation HTTP error', r.status, body)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.post(`${API}/api/affectations`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.createAffectation fallback', err.message)
     const item = { ...payload, id: `a_${Math.random().toString(36).slice(2,9)}`, statut: 'EN_ATTENTE', dateAffectation: new Date().toISOString() }
@@ -470,18 +380,8 @@ export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
       throw new Error('Invalid auditeurId')
     }
     const body = { auditeurId: audId, mode ,estValidee: false}
-    const r = await fetch(`http://localhost:5000/api/tasks/${taskId}/assign`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body)
-    })
-    if (!r.ok) {
-      let resp = null
-      try { resp = await r.text() } catch (e) {}
-      console.error('assignTask HTTP error', r.status, resp)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.post(`${API}/api/tasks/${taskId}/assign`, body, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.assignTask fallback', err.message)
     const item = { id: `a_${Math.random().toString(36).slice(2,9)}`, tacheId: taskId, auditeurId, statut: 'EN_ATTENTE', dateAffectation: new Date().toISOString() }
@@ -492,9 +392,8 @@ export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
 
 export async function validateAffectation(affectationId) {
   try {
-    const r = await fetch(`http://localhost:5000/api/affectations/${affectationId}/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.validateAffectation fallback', err.message)
     const idx = mockAffectations.findIndex(a => a.id === affectationId)
@@ -505,9 +404,8 @@ export async function validateAffectation(affectationId) {
 
 export async function refuseAffectation(affectationId, motif = '') {
   try {
-    const r = await fetch(`http://localhost:5000/api/affectations/${affectationId}/refuse`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify({ motif }) })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.post(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.refuseAffectation fallback', err.message)
     const idx = mockAffectations.findIndex(a => a.id === affectationId)
@@ -518,9 +416,8 @@ export async function refuseAffectation(affectationId, motif = '') {
 
 export async function getSuggestions(taskId) {
   try {
-    const r = await fetch(`http://localhost:5000/api/taches/${taskId}/suggestions`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/taches/${taskId}/suggestions`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('cordinateurServices.getSuggestions fallback', err.message)
     // simple local suggestion generator

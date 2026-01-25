@@ -1,10 +1,12 @@
 
 
+import axios from 'axios'
+
 export async function fetchMessages(taskId) {
   try {
-    const res = await fetch(`http://localhost:5000/chats?taskId=${taskId}`)
-    if (!res.ok) throw new Error('Fetch messages failed')
-    const data = await res.json()
+    const API = import.meta.env.VITE_API_URL
+    const res = await axios.get(`${API}/chats?taskId=${taskId}`)
+    const data = res.data
     // Normalise different possible shapes from backend:
     // - API returns { chat: { messages: [...] } }
     // - API returns { messages: [...] }
@@ -33,25 +35,24 @@ export async function postMessage(payload) {
     contenu: payload.text || payload.contenu || '',
     dateEnvoi: payload.dateEnvoi || new Date().toISOString(),
   }
-
-  const res = await fetch('http://localhost:5000/chats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  })
-  if (!res.ok) throw new Error('Send message failed')
-  const data = await res.json()
-  // Normalize returned message to frontend-friendly shape
-  // Backend message fields: { _id|id, expediteurId, contenu, dateEnvoi, estLu }
-  const msg = data && (data.message || data || null)
-  if (!msg) return data
-  return {
-    id: msg._id || msg.id,
-    taskId: msg.tacheId || msg.taskId || payload.taskId || null,
-    from: (msg.expediteurId && (msg.expediteurId.nom ? `${msg.expediteurId.nom} ${msg.expediteurId.prenom}` : msg.expediteurId)) || msg.expediteurId || payload.from,
-    text: msg.contenu || msg.text || '',
-    createdAt: msg.dateEnvoi || msg.createdAt || msg.date || new Date().toISOString(),
-    read: !!msg.estLu
+  try {
+    const API = import.meta.env.VITE_API_URL
+    const r = await axios.post(`${API}/chats`, body, { headers: { 'Content-Type': 'application/json' } })
+    const data = r.data
+    // Normalize returned message to frontend-friendly shape
+    // Backend message fields: { _id|id, expediteurId, contenu, dateEnvoi, estLu }
+    const msg = data && (data.message || data || null)
+    if (!msg) return data
+    return {
+      id: msg._id || msg.id,
+      taskId: msg.tacheId || msg.taskId || payload.taskId || null,
+      from: (msg.expediteurId && (msg.expediteurId.nom ? `${msg.expediteurId.nom} ${msg.expediteurId.prenom}` : msg.expediteurId)) || msg.expediteurId || payload.from,
+      text: msg.contenu || msg.text || '',
+      createdAt: msg.dateEnvoi || msg.createdAt || msg.date || new Date().toISOString(),
+      read: !!msg.estLu
+    }
+  } catch (e) {
+    throw new Error('Send message failed')
   }
 }
 

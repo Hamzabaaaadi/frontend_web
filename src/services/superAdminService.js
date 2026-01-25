@@ -22,13 +22,13 @@ function authHeaders() {
   }
 }
 
+import axios from 'axios'
+const API = import.meta.env.VITE_API_URL
+
 export async function listUsers() {
   try {
-    const r = await fetch('http://localhost:5000/api/users/all', {
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/users/all`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.listUsers fallback to mock', err.message)
     return new Promise((res) => setTimeout(() => res([...users]), 200))
@@ -37,18 +37,8 @@ export async function listUsers() {
 
 export async function createUser(payload) {
   try {
-    const r = await fetch('http://localhost:5000/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) { /* ignore */ }
-      console.error('createUser HTTP error', r.status, body)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.post(`${API}/api/users`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.createUser fallback to mock', err.message)
     const u = { ...payload, id: uid('u'), estActif: payload.estActif === undefined ? false : payload.estActif }
@@ -59,26 +49,8 @@ export async function createUser(payload) {
 
 export async function register(payload) {
   try {
-    const r = await fetch('http://localhost:5000/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) {
-      // try to parse json error body for a helpful message
-      let bodyText = null
-      try { bodyText = await r.text() } catch (e) { /* ignore */ }
-      try {
-        const json = JSON.parse(bodyText)
-        const msg = json && json.message ? json.message : bodyText
-        console.error('register HTTP error', r.status, msg)
-        throw new Error(msg || 'Network')
-      } catch (e) {
-        console.error('register HTTP error', r.status, bodyText)
-        throw new Error(bodyText || 'Network')
-      }
-    }
-    return await r.json()
+    const r = await axios.post(`${API}/api/auth/register`, payload, { headers: { 'Content-Type': 'application/json' } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.register fallback to mock', err.message)
     const u = { ...payload, id: uid('u'), estActif: payload.estActif === undefined ? false : payload.estActif }
@@ -89,18 +61,8 @@ export async function register(payload) {
 
 export async function updateUser(id, payload) {
   try {
-    const r = await fetch(`http://localhost:5000/api/users/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) { /* ignore */ }
-      console.error('updateUser HTTP error', r.status, body)
-      throw new Error('Network')
-    }
-    return await r.json()
+    const r = await axios.put(`${API}/api/users/${id}`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.updateUser fallback to mock', err.message)
     users = users.map((u) => (u.id === id ? { ...u, ...payload } : u))
@@ -110,13 +72,7 @@ export async function updateUser(id, payload) {
 
 export async function deleteUser(id) {
   try {
-    const r = await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE', headers: { ...authHeaders() } })
-    if (!r.ok) {
-      let body = null
-      try { body = await r.text() } catch (e) { /* ignore */ }
-      console.error('deleteUser HTTP error', r.status, body)
-      throw new Error('Network')
-    }
+    await axios.delete(`${API}/api/users/${id}`, { headers: { ...authHeaders() } })
     return true
   } catch (err) {
     console.warn('superAdminService.deleteUser fallback to mock', err.message)
@@ -127,9 +83,8 @@ export async function deleteUser(id) {
 
 export async function listVehicles() {
   try {
-    const r = await fetch('http://localhost:5000/api/vehicles', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.get(`${API}/api/vehicles`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.listVehicles fallback to mock', err.message)
     return new Promise((res) => setTimeout(() => res([...vehicles]), 200))
@@ -138,13 +93,8 @@ export async function listVehicles() {
 
 export async function createVehicle(payload) {
   try {
-    const r = await fetch('http://localhost:5000/api/vehicles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.post(`${API}/api/vehicles`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.createVehicle fallback to mock', err.message)
     const v = { ...payload, id: uid('v') }
@@ -155,13 +105,8 @@ export async function createVehicle(payload) {
 
 export async function updateVehicle(id, payload) {
   try {
-    const r = await fetch(`http://localhost:5000/api/vehicles/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!r.ok) throw new Error('Network')
-    return await r.json()
+    const r = await axios.put(`${API}/api/vehicles/${id}`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('superAdminService.updateVehicle fallback to mock', err.message)
     vehicles = vehicles.map((v) => (v.id === id ? { ...v, ...payload } : v))
@@ -171,8 +116,7 @@ export async function updateVehicle(id, payload) {
 
 export async function deleteVehicle(id) {
   try {
-    const r = await fetch(`http://localhost:5000/api/vehicles/${id}`, { method: 'DELETE', headers: { ...authHeaders() } })
-    if (!r.ok) throw new Error('Network')
+    await axios.delete(`${API}/api/vehicles/${id}`, { headers: { ...authHeaders() } })
     return true
   } catch (err) {
     console.warn('superAdminService.deleteVehicle fallback to mock', err.message)
