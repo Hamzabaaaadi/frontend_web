@@ -1,0 +1,118 @@
+.affectation-page {
+  padding: 2rem;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.affectation-page h2 {
+  margin-bottom: 2rem;
+  color: #2c3e50;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.affectation-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.affectation-table th, .affectation-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.affectation-table th {
+  background: #34495e;
+  color: #fff;
+  font-weight: 500;
+}
+
+.affectation-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-accept {
+  background: #27ae60;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-accept:hover {
+  background: #219150;
+}
+
+.btn-refuse {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-refuse:hover {
+  background: #c0392b;
+}
+
+.btn-edit {
+  background: #f1c40f;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-edit:hover {
+  background: #b7950b;
+}
+
+.btn-delete {
+  background: #7f8c8d;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+  background: #4d5656;
+}
+
+.success-message {
+  background: #27ae60;
+  color: #fff;
+  padding: 1rem 2rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.08);
+}
+
+.reject-message {
+  background: #e74c3c;
+  color: #fff;
+  padding: 1rem 2rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.08);
+}
