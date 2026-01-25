@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useLocation } from 'react-router-dom'
 import { getTasks, getTaskById, completeTask } from '../../services/tacheService'
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
@@ -115,13 +116,10 @@ export default function Tasks() {
       setNotifLoading(true)
       const token = localStorage.getItem('basicAuth')
       const headers = token ? { Authorization: `Basic ${token}` } : {}
-      const res = await fetch('http://localhost:5000/api/notifications', { method: 'GET', headers })
-      if (!res.ok) {
-        console.error('Failed to load notifications', res.status)
-        setNotifications([])
-        return
-      }
-      const data = await res.json().catch(() => null)
+      const API = import.meta.env.VITE_API_URL
+      const res = await axios.get(`${API}/api/notifications`, { headers })
+      if (!res) { setNotifications([]); return }
+      const data = res.data || null
       const list = Array.isArray(data) ? data : (data && Array.isArray(data.notifications) ? data.notifications : [])
       setNotifications(list)
     } catch (err) {
@@ -587,8 +585,8 @@ export default function Tasks() {
                     try {
                       const token = localStorage.getItem('basicAuth')
                       const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
-                      // mark as read if backend supports it (best-effort)
-                      await fetch(`http://localhost:5000/api/notifications/${n._id || n.id}/read`, { method: 'PUT', headers })
+                      const API = import.meta.env.VITE_API_URL
+                      await axios.put(`${API}/api/notifications/${n._id || n.id}/read`, null, { headers })
                     } catch (e) { console.error(e) }
                     // local update
                     setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x))

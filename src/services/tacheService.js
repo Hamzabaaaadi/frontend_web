@@ -38,11 +38,11 @@ export async function getTasks() {
       return {}
     }
   }
-
   try {
-    const res = await fetch('http://localhost:5000/api/tasks', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network response was not ok')
-    const data = await res.json()
+    const axios = (await import('axios')).default
+    const API = import.meta.env.VITE_API_URL
+    const res = await axios.get(`${API}/api/tasks`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = res.data
     // Normalize to an array of tasks
     let list = []
     if (Array.isArray(data)) list = data
@@ -74,9 +74,10 @@ export async function getTaskById(id) {
   }
 
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network response was not ok')
-    const data = await res.json()
+    const axios = (await import('axios')).default
+    const API = import.meta.env.VITE_API_URL
+    const res = await axios.get(`${API}/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = res.data
     return data
   
   } catch (err) {
@@ -96,15 +97,10 @@ export async function completeTask(id) {
   }
 
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/${id}/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => null)
-      throw new Error(text || 'Network response was not ok')
-    }
-    return await res.json()
+    const axios = (await import('axios')).default
+    const API = import.meta.env.VITE_API_URL
+    const r = await axios.post(`${API}/api/tasks/${id}/complete`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return r.data
   } catch (err) {
     console.warn('tacheService.completeTask fallback', err.message)
     return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 300))

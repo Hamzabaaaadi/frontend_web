@@ -1,60 +1,44 @@
+import axios from 'axios'
+
+const API = import.meta.env.VITE_API_URL
+
 // ===============================
 // Service d'authentification
 // ===============================
 
 export async function login(email, password) {
   try {
-    console.log('login', email, password);
+    const response = await axios.post(`${API}/api/auth/login`, { email, password }, {
+      headers: { 'Content-Type': 'application/json' }
+    })
 
-    const response = await fetch('http://localhost:5000/api/auth/login', {
-      method: 'POST', // ✅ correction ici
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const data = response.data
 
-    console.log('response', response);
+    // store Basic Auth locally
+    const basicAuth = btoa(email + ':' + password)
+    localStorage.setItem('basicAuth', basicAuth)
 
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: 'Erreur de connexion' }));
-      throw new Error(errorData.message || 'Email ou mot de passe incorrect');
-    }
-
-    const data = await response.json();
-
-    // ✅ IMPORTANT : stocker le Basic Auth
-    const basicAuth = btoa(email + ':' + password);
-    localStorage.setItem('basicAuth', basicAuth);
-
-    // (optionnel) stocker l'utilisateur
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(data.user))
     }
 
-    return data;
+    return data
   } catch (err) {
-    // Fallback demo si l'API n'est pas dispo
-    if (
-      err.message.includes('Failed to fetch') ||
-      err.message.includes('Network')
-    ) {
-      console.warn('authService.login: API non disponible, fallback demo');
-
+    const msg = err?.response?.data?.message || err.message || ''
+    // fallback demo if network error
+    if (msg.includes('Network') || msg.includes('Failed to fetch') || !err?.response) {
+      console.warn('authService.login: API non disponible, fallback demo')
       if (email === 'coordinateur@demo.com' && password === 'demo') {
-        return { role: 'COORDINATEUR', user: { email, role: 'COORDINATEUR' } };
+        return { role: 'COORDINATEUR', user: { email, role: 'COORDINATEUR' } }
       } else if (email === 'auditeur@demo.com' && password === 'demo') {
-        return { role: 'AUDITEUR', user: { email, role: 'AUDITEUR' } };
+        return { role: 'AUDITEUR', user: { email, role: 'AUDITEUR' } }
       } else if (email === 'superadmin@demo.com' && password === 'demo') {
-        return { role: 'SUPER_ADMIN', user: { email, role: 'SUPER_ADMIN' } };
+        return { role: 'SUPER_ADMIN', user: { email, role: 'SUPER_ADMIN' } }
       }
-
-      throw new Error('Email ou mot de passe incorrect');
+      throw new Error('Email ou mot de passe incorrect')
     }
 
-    throw err;
+    throw new Error(msg || 'Email ou mot de passe incorrect')
   }
 }
 
@@ -62,68 +46,48 @@ export async function login(email, password) {
 // Logout (Basic Auth)
 // ===============================
 export function logout() {
-  // ✅ En Basic Auth, logout = suppression locale
-  localStorage.removeItem('basicAuth');
-  localStorage.removeItem('user');
+  localStorage.removeItem('basicAuth')
+  localStorage.removeItem('user')
 }
 
 // ===============================
 // Profil utilisateur connecté
 // ===============================
-export async function 
-getMyProfile() {
-  const basicAuth = localStorage.getItem('basicAuth');
+export async function getMyProfile() {
+  const basicAuth = localStorage.getItem('basicAuth')
+  if (!basicAuth) throw new Error('Utilisateur non connecté')
 
-  if (!basicAuth) {
-    throw new Error('Utilisateur non connecté');
+  try {
+    const res = await axios.get(`${API}/api/users/me`, {
+      headers: { Authorization: `Basic ${basicAuth}` }
+    })
+    return res.data
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || 'Non authentifié')
   }
-
-  const res = await fetch('http://localhost:5000/api/users/me', {
-    method: 'GET',
-    headers: {
-      Authorization: `Basic ${basicAuth}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error('Non authentifié');
-  }
-
-  return res.json();
 }
 
-// Mettre à jour le profil connecté (PUT /api/users/me)
 export async function updateMyProfile(payload = {}) {
   const basicAuth = localStorage.getItem('basicAuth')
   if (!basicAuth) throw new Error('Utilisateur non connecté')
 
-  // n'envoyer que les champs autorisés
   const allowed = ['nom', 'prenom', 'email', 'password', 'formation', 'formations']
   const body = {}
   allowed.forEach((k) => {
     if (k in payload && payload[k] !== undefined) body[k] = payload[k]
   })
 
-  const res = await fetch('http://localhost:5000/api/users/me', {
-    method: 'PUT',
-    headers: {
-      Authorization: `Basic ${basicAuth}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  })
+  try {
+    const res = await axios.put(`${API}/api/users/me`, body, {
+      headers: { Authorization: `Basic ${basicAuth}` }
+    })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Erreur mise à jour' }))
-    throw new Error(err.message || 'Erreur lors de la mise à jour du profil')
+    const data = res.data
+    if (data.user) localStorage.setItem('user', JSON.stringify(data.user))
+    return data
+  } catch (err) {
+    throw new Error(err?.response?.data?.message || 'Erreur lors de la mise à jour du profil')
   }
-
-  const data = await res.json()
-  if (data.user) {
-    localStorage.setItem('user', JSON.stringify(data.user))
-  }
-  return data
 }
 
 export default {
@@ -131,89 +95,6 @@ export default {
   logout,
   getMyProfile,
   updateMyProfile
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // Service d'authentification
-// export async function login(email, password) {
-//   try {
-//     console.log('login', email, password);
-//     const response = await fetch('http://localhost:5000/api/auth/login', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify({ email, password }),
-//     });
-//     console.log('response', response);
-
-//     if (!response.ok) {
-//       const errorData = await response.json().catch(() => ({ message: 'Erreur de connexion' }));
-//       throw new Error(errorData.message || 'Email ou mot de passe incorrect');
-//     }
-
-//     const data = await response.json();
-//     return data;
-//   } catch (err) {
-//     // Fallback vers la logique demo si l'API n'est pas disponible
-//     if (err.message.includes('Failed to fetch') || err.message.includes('Network')) {
-//       console.warn('authService.login: API non disponible, fallback vers demo');
-//       // Logique de fallback pour les démos
-//       if (email === 'coordinateur@demo.com' && password === 'demo') {
-//         return { role: 'coordinateur', user: { email, role: 'coordinateur' } };
-//       } else if (email === 'auditeur@demo.com' && password === 'demo') {
-//         return { role: 'auditeur', user: { email, role: 'auditeur' } };
-//       } else if (email === 'superadmin@demo.com' && password === 'demo') {
-//         return { role: 'superadmin', user: { email, role: 'superadmin' } };
-//       }
-//       throw new Error('Email ou mot de passe incorrect');
-//     }
-//     throw err;
-//   }
-// }
-
-// export async function logout() {
-//   try {
-//     await fetch('/api/auth/logout', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//     });
-//   } catch (err) {
-//     console.warn('authService.logout: erreur lors de la déconnexion', err.message);
-//   }
-// }
-
-// export default {
-//   login,
-//   logout,
-// };
-
-
-// export async function getMyProfile() {
-//   const res = await fetch('http://localhost:5000/api/users/me', {
-//     headers: {
-//       Authorization: 'Basic ' + localStorage.getItem('basicAuth')
-//     }
-//   });
-
-//   if (!res.ok) throw new Error('Non authentifié');
-//   return res.json();
-// }
-
+}
+// file cleaned: only one implementation present above
+// Service d'authentification

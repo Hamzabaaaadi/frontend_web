@@ -58,6 +58,7 @@
 
 
 import React, { useEffect, useState } from 'react'
+import axios from 'axios'
 import { getMyProfile, updateMyProfile, logout } from '../../services/authService'
 
 export default function Profile() {
@@ -110,22 +111,15 @@ export default function Profile() {
       let uploadedAvatarUrl = null
       // If a file was selected, upload it first (multipart/form-data) to /api/users/:id/avatar
       if (selectedAvatarFile) {
-        try {
+          try {
           const userId = (user && (user._id || user.id)) || 'me'
           const token = localStorage.getItem('basicAuth')
           const headers = token ? { Authorization: `Basic ${token}` } : {}
           const formData = new FormData()
           formData.append('avatar', selectedAvatarFile)
-          const uploadRes = await fetch(`http://localhost:5000/api/users/${userId}/avatar`, {
-            method: 'PUT',
-            headers: { ...headers },
-            body: formData
-          })
-          if (!uploadRes.ok) {
-            const text = await uploadRes.text().catch(() => '')
-            throw new Error(`Avatar upload failed: HTTP ${uploadRes.status}: ${text}`)
-          }
-          const uploadData = await uploadRes.json().catch(() => null)
+          const API = import.meta.env.VITE_API_URL
+          const uploadRes = await axios.put(`${API}/api/users/${userId}/avatar`, formData, { headers: { ...headers } })
+          const uploadData = uploadRes.data || null
           uploadedAvatarUrl = uploadData && uploadData.user && (uploadData.user.avatar || uploadData.user.avatarUrl || uploadData.user.photo || uploadData.user.profileImage) || null
           if (uploadedAvatarUrl) setProfileImage(uploadedAvatarUrl)
         } catch (err) {

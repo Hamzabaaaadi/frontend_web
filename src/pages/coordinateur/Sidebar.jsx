@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from 'axios'
 import { Link, useLocation } from "react-router-dom";
 import Modal from '../../components/common/Modal'
 
@@ -16,9 +17,10 @@ const Sidebar = () => {
 				try {
 					const token = localStorage.getItem('basicAuth');
 					const headers = token ? { Authorization: `Basic ${token}` } : {};
-					const res = await fetch('http://localhost:5000/api/users/all', { method: 'GET', headers });
-					if (!res.ok) return;
-					const data = await res.json();
+					const API = import.meta.env.VITE_API_URL
+					const res = await axios.get(`${API}/api/users/all`, { headers });
+					if (!res) return;
+					const data = res.data;
 					setUsers(Array.isArray(data) ? data : (data && Array.isArray(data.users) ? data.users : []));
 				} catch (e) {}
 			};
@@ -33,20 +35,21 @@ const Sidebar = () => {
 			try {
 				const token = localStorage.getItem('basicAuth')
 				const headers = token ? { Authorization: `Basic ${token}` } : {}
-				const res = await fetch('http://localhost:5000/api/notifications', { method: 'GET', headers })
-				if (!res.ok) return
-				const data = await res.json().catch(() => null)
+				const API = import.meta.env.VITE_API_URL
+				const res = await axios.get(`${API}/api/notifications`, { headers })
+				if (!res) return
+				const data = res.data || null
 				let list = Array.isArray(data) ? data : (data && Array.isArray(data.notifications) ? data.notifications : [])
 				if ((!list || list.length === 0)) {
 					try {
-						const meRes = await fetch('http://localhost:5000/api/users/me', { method: 'GET', headers })
-						if (meRes.ok) {
-							const meData = await meRes.json().catch(() => null)
+						const meRes = await axios.get(`${API}/api/users/me`, { headers })
+						if (meRes) {
+							const meData = meRes.data || null
 							const userId = meData && (meData.user?._id || meData.user?.id || meData._id || meData.id)
 							if (userId) {
-								const byUser = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`, { method: 'GET', headers })
-								if (byUser.ok) {
-									const byUserData = await byUser.json().catch(() => null)
+								const byUser = await axios.get(`${API}/api/notifications?userId=${userId}`, { headers })
+								if (byUser) {
+									const byUserData = byUser.data || null
 									const byUserList = Array.isArray(byUserData) ? byUserData : (byUserData && Array.isArray(byUserData.notifications) ? byUserData.notifications : [])
 									if (byUserList && byUserList.length) list = byUserList
 								}
@@ -56,9 +59,9 @@ const Sidebar = () => {
 				}
 				if ((!list || list.length === 0)) {
 					try {
-						const byRole = await fetch('http://localhost:5000/api/notifications?role=coordinateur', { method: 'GET', headers })
-						if (byRole.ok) {
-							const byRoleData = await byRole.json().catch(() => null)
+						const byRole = await axios.get(`${API}/api/notifications?role=coordinateur`, { headers })
+						if (byRole) {
+							const byRoleData = byRole.data || null
 							const byRoleList = Array.isArray(byRoleData) ? byRoleData : (byRoleData && Array.isArray(byRoleData.notifications) ? byRoleData.notifications : [])
 							if (byRoleList && byRoleList.length) list = byRoleList
 						}
@@ -87,23 +90,21 @@ const Sidebar = () => {
 			setNotifLoading(true)
 			const token = localStorage.getItem('basicAuth')
 			const headers = token ? { Authorization: `Basic ${token}` } : {}
-			const res = await fetch('http://localhost:5000/api/notifications', { method: 'GET', headers })
-			if (!res.ok) {
-				setNotifications([])
-				return
-			}
-			const data = await res.json().catch(() => null)
+				const API = import.meta.env.VITE_API_URL
+				const res = await axios.get(`${API}/api/notifications`, { headers })
+				if (!res) { setNotifications([]); return }
+				const data = res.data || null
 			let list = Array.isArray(data) ? data : (data && Array.isArray(data.notifications) ? data.notifications : [])
 			if ((!list || list.length === 0)) {
 				try {
-					const meRes = await fetch('http://localhost:5000/api/users/me', { method: 'GET', headers })
-					if (meRes.ok) {
-						const meData = await meRes.json().catch(() => null)
+						const meRes = await axios.get(`${API}/api/users/me`, { headers })
+						if (meRes) {
+							const meData = meRes.data || null
 						const userId = meData && (meData.user?._id || meData.user?.id || meData._id || meData.id)
 						if (userId) {
-							const byUser = await fetch(`http://localhost:5000/api/notifications?userId=${userId}`, { method: 'GET', headers })
-							if (byUser.ok) {
-								const byUserData = await byUser.json().catch(() => null)
+								const byUser = await axios.get(`${API}/api/notifications?userId=${userId}`, { headers })
+								if (byUser) {
+									const byUserData = byUser.data || null
 								const byUserList = Array.isArray(byUserData) ? byUserData : (byUserData && Array.isArray(byUserData.notifications) ? byUserData.notifications : [])
 								if (byUserList && byUserList.length) list = byUserList
 							}
@@ -113,9 +114,9 @@ const Sidebar = () => {
 			}
 			if ((!list || list.length === 0)) {
 				try {
-					const byRole = await fetch('http://localhost:5000/api/notifications?role=coordinateur', { method: 'GET', headers })
-					if (byRole.ok) {
-						const byRoleData = await byRole.json().catch(() => null)
+						const byRole = await axios.get(`${API}/api/notifications?role=coordinateur`, { headers })
+						if (byRole) {
+							const byRoleData = byRole.data || null
 						const byRoleList = Array.isArray(byRoleData) ? byRoleData : (byRoleData && Array.isArray(byRoleData.notifications) ? byRoleData.notifications : [])
 						if (byRoleList && byRoleList.length) list = byRoleList
 					}
@@ -195,7 +196,7 @@ const Sidebar = () => {
 								</div>
 								<div style={{ marginTop: 6 }}>{n.message || '-'}</div>
 								<div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-									{!n.estLue && <button className="btn-ghost" onClick={async () => { try { const token = localStorage.getItem('basicAuth'); const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }; await fetch(`http://localhost:5000/api/notifications/${n._id || n.id}/read`, { method: 'PUT', headers }); setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x)); setUnreadCount(c => Math.max(0, c - 1)); } catch (e) { console.error(e) } }}>Marquer comme lu</button>}
+									{!n.estLue && <button className="btn-ghost" onClick={async () => { try { const token = localStorage.getItem('basicAuth'); const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }; const API = import.meta.env.VITE_API_URL; await axios.put(`${API}/api/notifications/${n._id || n.id}/read`, null, { headers }); setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x)); setUnreadCount(c => Math.max(0, c - 1)); } catch (e) { console.error(e) } }}>Marquer comme lu</button>}
 								</div>
 							</div>
 						))}
@@ -205,10 +206,10 @@ const Sidebar = () => {
 
 			{/* Create notification modal */}
 			<Modal isOpen={createOpen} title="Créer une notification" onCancel={() => setCreateOpen(false)} onConfirm={async () => {
-				try {
-					setCreateLoading(true)
-					const token = localStorage.getItem('basicAuth')
-					const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+					try {
+						setCreateLoading(true)
+						const token = localStorage.getItem('basicAuth')
+						const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
 					let destinataireId = createForm.destinataire;
 					if (typeof destinataireId === 'string') {
 						const destRaw = (destinataireId || '').trim();
@@ -222,7 +223,8 @@ const Sidebar = () => {
 					const payload = { type: createForm.type, titre: createForm.titre, message: createForm.message, sendEmail: !!createForm.sendEmail };
 					if (destinataireId && (Array.isArray(destinataireId) ? destinataireId.length > 0 : destinataireId)) payload.destinataireId = destinataireId;
 					if (createForm.tacheId) payload.data = { tacheId: createForm.tacheId };
-					await fetch('http://localhost:5000/api/notifications', { method: 'POST', headers, body: JSON.stringify(payload) });
+						const API = import.meta.env.VITE_API_URL
+						await axios.post(`${API}/api/notifications`, payload, { headers });
 					setCreateOpen(false);
 					setCreateForm({ destinataire: '', type: 'AFFECTATION', titre: '', message: '', tacheId: '', sendEmail: false });
 					await loadNotifications();

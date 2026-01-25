@@ -9,11 +9,13 @@ function authHeaders() {
   }
 }
 
+import axios from 'axios'
+const API = import.meta.env.VITE_API_URL
+
 export async function acceptAffectation(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/accept`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.put(`${API}/api/affectations/${affectationId}/accept`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.accept fallback', err.message)
     return simulate({ success: true, id: affectationId })
@@ -22,13 +24,8 @@ export async function acceptAffectation(affectationId) {
 
 export async function refuseAffectation(affectationId, motif = '') {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/refuse`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ motif })
-    })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.put(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.refuse fallback', err.message)
     return simulate({ success: true, id: affectationId })
@@ -37,13 +34,8 @@ export async function refuseAffectation(affectationId, motif = '') {
 
 export async function delegateAffectation(affectationId, delegatorId, auditeurId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/delegate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ delegatorId, auditeurId })
-    })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.post(`${API}/api/affectations/${affectationId}/delegate`, { delegatorId, auditeurId }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.delegate fallback', err.message)
     return simulate({ success: true, id: affectationId, from: delegatorId, to: auditeurId })
@@ -52,13 +44,8 @@ export async function delegateAffectation(affectationId, delegatorId, auditeurId
 
 export async function createDelegation(payload) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.post(`${API}/api/delegations/create`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.createDelegation fallback', err.message)
     const now = new Date().toISOString().split('T')[0]
@@ -125,12 +112,8 @@ const mockDelegations = [
 
 export async function getAffectations() {
   try {
-    const res = await fetch('http://localhost:5000/api/affectations/me', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    });
-    if (!res.ok) throw new Error('Network error');
-    return await res.json();
+    const res = await axios.get(`${API}/api/affectations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.getAffectations fallback', err.message);
     return simulate([]);
@@ -138,12 +121,8 @@ export async function getAffectations() {
 }
 export async function getAllAffectations() {
   try {
-    const res = await fetch('http://localhost:5000/api/affectations', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    });
-    if (!res.ok) throw new Error('Network error');
-    return await res.json();
+    const res = await axios.get(`${API}/api/affectations`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.getAffectations fallback', err.message);
     return simulate([]);
@@ -152,9 +131,8 @@ export async function getAllAffectations() {
 
 export async function validateAffectation(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.validate fallback', err.message)
     return simulate({ success: true, id: affectationId })
@@ -163,9 +141,8 @@ export async function validateAffectation(affectationId) {
 
 export async function getDelegations() {
   try {
-    const res = await fetch('http://localhost:5000/api/delegations/me', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network response was not ok')
-    const data = await res.json()
+    const res = await axios.get(`${API}/api/delegations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = res.data
     return normalizeArray(data)
   } catch (err) {
     console.warn('affectationService.getDelegations fallback', err.message)
@@ -176,9 +153,8 @@ export async function getDelegations() {
 // get delegations proposed by the currently connected auditeur (propres)
 export async function getMyDelegationsPropres() {
   try {
-    const res = await fetch('http://localhost:5000/api/delegations/me/propres', { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network response was not ok')
-    const data = await res.json()
+    const res = await axios.get(`${API}/api/delegations/me/propres`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const data = res.data
     return normalizeArray(data)
   } catch (err) {
     console.warn('affectationService.getMyDelegationsPropres fallback', err.message)
@@ -204,9 +180,8 @@ function normalizeArray(data) {
 
 export async function acceptDelegation(delegationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/accepter`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/accepter`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.acceptDelegation fallback', err.message)
     const idx = mockDelegations.findIndex(d => d.id === delegationId)
@@ -222,9 +197,8 @@ export async function acceptDelegation(delegationId) {
 
 export async function refuseDelegation(delegationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/refuser`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() } })
-    if (!res.ok) throw new Error('Network error')
-    return await res.json()
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/refuser`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.refuseDelegation fallback', err.message)
     const idx = mockDelegations.findIndex(d => d.id === delegationId)
@@ -238,10 +212,9 @@ export async function refuseDelegation(delegationId) {
 export async function deleteDelegation(delegationId) {
   const headers = { 'Content-Type': 'application/json', ...authHeaders() }
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}`, { method: 'DELETE', headers })
-    if (!res.ok) throw new Error(`Network response was not ok (${res.status})`)
+    const res = await axios.delete(`${API}/api/delegations/${delegationId}`, { headers })
     if (res.status === 204) return { success: true, id: delegationId }
-    try { return await res.json() } catch (e) { return { success: true, id: delegationId } }
+    return res.data || { success: true, id: delegationId }
   } catch (err) {
     console.warn('affectationService.deleteDelegation fallback', err.message)
     const idx = mockDelegations.findIndex(d => d.id === delegationId)
@@ -252,9 +225,8 @@ export async function deleteDelegation(delegationId) {
 
 export async function modifyDelegation(delegationId, payload) {
   try {
-    const res = await fetch(`http://localhost:5000/api/delegations/${delegationId}/modifier`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(payload) })
-    if (!res.ok) throw new Error('Network response was not ok')
-    return await res.json()
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/modifier`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.modifyDelegation fallback', err.message)
     const idx = mockDelegations.findIndex(d => d.id === delegationId)
@@ -265,12 +237,8 @@ export async function modifyDelegation(delegationId, payload) {
 
 export async function deleteAffectation(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    });
-    if (!res.ok) throw new Error('Network error');
-    return await res.json();
+    const res = await axios.delete(`${API}/api/affectations/${affectationId}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.deleteAffectation fallback', err.message);
     return simulate({ success: true, id: affectationId });
@@ -279,13 +247,8 @@ export async function deleteAffectation(affectationId) {
 
 export async function updateAffectation(affectationId, payload) {
   try {
-    const res = await fetch(`http://localhost:5000/api/affectations/${affectationId}`, {
-        method: 'PUT',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
-    try { return await res.json() } catch (e) { return { success: true, id: affectationId } }
+    const res = await axios.put(`${API}/api/affectations/${affectationId}`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data || { success: true, id: affectationId }
   } catch (err) {
     console.warn('affectationService.updateAffectation fallback', err.message)
     // update local mock if present
@@ -297,12 +260,8 @@ export async function updateAffectation(affectationId, payload) {
 
 export async function validateAffectationStatus(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/affectation/${affectationId}/validate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    });
-    if (!res.ok) throw new Error('Network error');
-    return await res.json();
+    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.validateAffectationStatus fallback', err.message);
     return simulate({ success: true, id: affectationId });
@@ -311,12 +270,8 @@ export async function validateAffectationStatus(affectationId) {
 
 export async function rejectAffectationStatus(affectationId) {
   try {
-    const res = await fetch(`http://localhost:5000/api/tasks/affectation/${affectationId}/reject`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() }
-    });
-    if (!res.ok) throw new Error('Network error');
-    return await res.json();
+    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/reject`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    return res.data
   } catch (err) {
     console.warn('affectationService.rejectAffectationStatus fallback', err.message);
     return simulate({ success: true, id: affectationId });
