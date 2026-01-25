@@ -1,0 +1,53 @@
+name: Auto-merge feature branches to main
+
+on:
+  push:
+    # Trigger when a feature branch under feat/ is pushed
+    branches:
+      - 'feat/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-merge-to-main
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine branch
+        id: vars
+        run: |
+          echo "ref=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Merge into main
+        env:
+          BRANCH: ${{ steps.vars.outputs.ref }}
+        run: |
+          echo "Merging branch: $BRANCH into main"
+          # Ensure we have main and the pushed branch
+          git fetch origin main
+          git fetch origin "$BRANCH"
+          git checkout main
+          # Try fast-forward merge if possible, otherwise create a merge commit
+          if git merge --ff-only "origin/$BRANCH"; then
+            echo "Fast-forwarded main to origin/$BRANCH"
+          else
+            git merge --no-ff --no-edit "origin/$BRANCH" || (echo 'Merge failed due to conflicts' && exit 1)
+          fi
+          git push origin main
+
+      - name: Success message
+        run: echo "Branch ${{ steps.vars.outputs.ref }} merged into main"
