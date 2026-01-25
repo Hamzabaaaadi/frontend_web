@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Select from 'react-select';
 import { Link, useLocation } from "react-router-dom";
 import Modal from '../../components/common/Modal'
 import './dashboard.css'
@@ -102,15 +103,29 @@ export default function SuperAdminSidebar() {
 
         {/* Notifications button */}
         <div style={{ marginTop: 12, padding: '8px 12px' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={async () => { setNotifOpen(true); await loadNotifications() }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid #eef2f7', background: '#fff', cursor: 'pointer' }}>
-              <span style={{ fontSize: 18 }}>🔔</span>
-              <span style={{ fontWeight: 600 }}>Notifications</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button
+              onClick={async () => { setNotifOpen(true); await loadNotifications() }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10,
+                border: '1.5px solid #eef2f7', background: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 600,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)', transition: 'box-shadow 0.2s', marginBottom: 2
+              }}
+            >
+              <span style={{ fontSize: 20 }}>🔔</span>
+              <span style={{ flex: 1 }}>Notifications</span>
               {unreadCount > 0 && <span style={{ marginLeft: 8, background: '#ef4444', color: '#fff', borderRadius: 999, padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>{unreadCount}</span>}
             </button>
-            <button onClick={() => setCreateOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid #e6f0ff', background: '#fff', cursor: 'pointer' }}>
-              <span style={{ fontSize: 18 }}>✉️</span>
-              <span style={{ fontWeight: 600 }}>Créer</span>
+            <button
+              onClick={() => setCreateOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderRadius: 10,
+                border: '1.5px solid #e6f0ff', background: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 600,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)', transition: 'box-shadow 0.2s'
+              }}
+            >
+              <span style={{ fontSize: 20 }}>✉️</span>
+              <span style={{ flex: 1 }}>Créer</span>
             </button>
           </div>
         </div>
@@ -163,29 +178,18 @@ export default function SuperAdminSidebar() {
     }} confirmText={createLoading ? 'Envoi…' : 'Envoyer'}>
     <div style={{ display: 'grid', gap: 8 }}>
       <label>Destinataire(s)</label>
-      <div style={{ maxHeight: 120, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4, padding: 4 }}>
-        {users.map(user => (
-          <label key={user._id || user.id} style={{ display: 'block', marginBottom: 4 }}>
-            <input
-              type="checkbox"
-              value={user._id || user.id}
-              checked={Array.isArray(createForm.destinataire) ? createForm.destinataire.includes(user._id || user.id) : false}
-              onChange={e => {
-                const val = user._id || user.id;
-                setCreateForm(f => {
-                  let arr = Array.isArray(f.destinataire) ? [...f.destinataire] : [];
-                  if (e.target.checked) {
-                    if (!arr.includes(val)) arr.push(val);
-                  } else {
-                    arr = arr.filter(id => id !== val);
-                  }
-                  return { ...f, destinataire: arr };
-                });
-              }}
-            /> {user.nom} {user.prenom}
-          </label>
-        ))}
-      </div>
+      <Select
+        isMulti
+        options={users.map(user => ({ value: user._id || user.id, label: `${user.nom} ${user.prenom}` }))}
+        value={Array.isArray(createForm.destinataire)
+          ? users.filter(user => createForm.destinataire.includes(user._id || user.id)).map(user => ({ value: user._id || user.id, label: `${user.nom} ${user.prenom}` }))
+          : []}
+        onChange={selected => {
+          setCreateForm(f => ({ ...f, destinataire: selected.map(opt => opt.value) }));
+        }}
+        placeholder="Sélectionner les destinataires..."
+        styles={{ menu: base => ({ ...base, zIndex: 9999 }) }}
+      />
         <label>Type</label>
         <select value={createForm.type} onChange={e => setCreateForm(f => ({ ...f, type: e.target.value }))}>
           <option value="AFFECTATION">AFFECTATION</option>

@@ -187,9 +187,9 @@ const Navbar = () => {
 			<div className="navbar-content">
 				<span className="role-badge-modern">Coordinateur</span>
 				<div className="navbar-actions">
-					<Link to="/chat" className="navbar-icon-modern" title="Chat">
+					{/* <Link to="/chat" className="navbar-icon-modern" title="Chat">
 						<span role="img" aria-label="chat">💬</span>
-					</Link>
+					</Link> */}
 					{/* Icône de notifications supprimée */}
 					<div
 						className="user-avatar"

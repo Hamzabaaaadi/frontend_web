@@ -162,47 +162,58 @@ const Affectation = () => {
           </tr>
         </thead>
         <tbody>
-          {affectations.map((aff) => (
-            <tr key={aff._id}>
-              <td>{aff?.tacheId?.nom || "-"}</td>
-              <td>
-                {console.log("AuditeurIdqqqqqqqqqqqq:", aff)}
-                {typeof aff.auditeurId === "object" && aff.auditeurId !== null
-                  ? `${aff.auditeurId.nom || ""} ${aff.auditeurId.prenom || ""}`
-                  : aff.auditeurId || "-"}
-              </td>
-              <td>
-                {aff.dateAffectation
-                  ? new Date(aff.dateAffectation).toLocaleString()
-                  : "-"}
-              </td>
-              <td>{aff.statut || "-"}</td>
-              <td>{aff.mode || "-"}</td>
-              <td>{aff.estValidee ? "Validée" : "Non validée"}</td>
-              <td>{aff?.tacheId?.statut || "-"}</td>
-              <td>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
-                  <button className="btn-accept" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#10b981', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleValidate(aff._id)}>Accepter</button>
-                  <button className="btn-refuse" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#ef4444', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleReject(aff._id)}>Refuser</button>
-                  <button className="btn-edit" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#f59e42', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => {
-                    // open edit modal
-                    setEditingAff(aff)
-                    setEditForm({
-                      mode: aff.mode || '',
-                      dateAffectation: aff.dateAffectation ? toLocalDatetimeInput(aff.dateAffectation) : '',
-                      estValidee: !!aff.estValidee,
-                      tacheId: aff?.tacheId?._id || aff?.tacheId?.id || (typeof aff.tacheId === 'string' ? aff.tacheId : ''),
-                      auditeurName: (typeof aff.auditeurId === 'object' && aff.auditeurId !== null) ? `${aff.auditeurId.prenom || ''} ${aff.auditeurId.nom || ''}`.trim() : (typeof aff.auditeurId === 'string' ? aff.auditeurId : ''),
-                      statut: aff?.tacheId?.statut || ''
-                    })
-                    setEditModalOpen(true)
-                  }}>Modifier</button>
-                  <button className="btn-delete" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#374151', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleDelete(aff._id)}>Supprimer</button>
-                  <button className="btn-details" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#2563eb', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleShowTaskDetails(aff)}>Détails tâche</button>
-                </div>
-              </td>
-            </tr>
-          ))}
+          {affectations
+            .filter(aff => {
+              // Exclure si auditeurId est null, vide, "null", ou objet sans nom/prenom
+              if (!aff.auditeurId || aff.auditeurId === 'null') return false;
+              if (typeof aff.auditeurId === 'string' && aff.auditeurId.trim() === '') return false;
+              if (typeof aff.auditeurId === 'object' && aff.auditeurId !== null) {
+                const nom = aff.auditeurId.nom || '';
+                const prenom = aff.auditeurId.prenom || '';
+                if (nom.trim() === '' && prenom.trim() === '') return false;
+              }
+              return true;
+            })
+            .map((aff) => (
+              <tr key={aff._id}>
+                <td>{aff?.tacheId?.nom || "-"}</td>
+                <td>
+                  {typeof aff.auditeurId === "object" && aff.auditeurId !== null
+                    ? `${aff.auditeurId.nom || ""} ${aff.auditeurId.prenom || ""}`
+                    : aff.auditeurId || "-"}
+                </td>
+                <td>
+                  {aff.dateAffectation
+                    ? new Date(aff.dateAffectation).toLocaleString()
+                    : "-"}
+                </td>
+                <td>{aff.statut || "-"}</td>
+                <td>{aff.mode || "-"}</td>
+                <td>{aff.estValidee ? "Validée" : "Non validée"}</td>
+                <td>{aff?.tacheId?.statut || "-"}</td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'stretch' }}>
+                    <button className="btn-accept" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#10b981', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleValidate(aff._id)}>Accepter</button>
+                    <button className="btn-refuse" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#ef4444', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleReject(aff._id)}>Refuser</button>
+                    <button className="btn-edit" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#f59e42', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => {
+                      // open edit modal
+                      setEditingAff(aff)
+                      setEditForm({
+                        mode: aff.mode || '',
+                        dateAffectation: aff.dateAffectation ? toLocalDatetimeInput(aff.dateAffectation) : '',
+                        estValidee: !!aff.estValidee,
+                        tacheId: aff?.tacheId?._id || aff?.tacheId?.id || (typeof aff.tacheId === 'string' ? aff.tacheId : ''),
+                        auditeurName: (typeof aff.auditeurId === 'object' && aff.auditeurId !== null) ? `${aff.auditeurId.prenom || ''} ${aff.auditeurId.nom || ''}`.trim() : (typeof aff.auditeurId === 'string' ? aff.auditeurId : ''),
+                        statut: aff?.tacheId?.statut || ''
+                      })
+                      setEditModalOpen(true)
+                    }}>Modifier</button>
+                    <button className="btn-delete" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#374151', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleDelete(aff._id)}>Supprimer</button>
+                    <button className="btn-details" style={{margin:0, padding:'7px 0', fontWeight:'bold', background:'#2563eb', color:'#fff', border:'none', borderRadius:5, cursor:'pointer'}} onClick={() => handleShowTaskDetails(aff)}>Détails tâche</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
 
