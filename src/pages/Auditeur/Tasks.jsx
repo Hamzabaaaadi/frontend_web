@@ -4,7 +4,6 @@ import { getTasks, getTaskById, completeTask } from '../../services/tacheService
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
-import Chat from '../../components/Chat/Chat'
 
 const cardStyle = {
   background: '#fff',
@@ -396,7 +395,7 @@ export default function Tasks() {
                 <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
                 <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
                 {t.statut === 'ACCEPTEE' && (
-                  <button className="btn" style={{ background: '#eef2ff', color: '#1e40af' }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
+                  null
                 )}
               </div>
           </article>
@@ -561,11 +560,7 @@ export default function Tasks() {
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
           </div>
         )}
-        {modalType === 'chat' && (
-          <div>
-            <Chat taskId={modalTaskId} currentUser={modalFromInput} />
-          </div>
-        )}
+        {/* chat modal removed */}
       </Modal>
 
       {/* Notifications modal */}
@@ -671,9 +666,6 @@ export default function Tasks() {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <button onClick={() => openDetails(tIdVal)} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff' }}>Voir</button>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <button onClick={(e) => { e.stopPropagation(); setModalFromInput(audLabel || audIdVal || ''); setModalTaskId(tIdVal || a.id); setModalType('chat'); setModalOpen(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: 'none', background: '#eef2ff', color: '#1e40af' }}>Discussion</button>
                     </div>
                   </div>
                   )

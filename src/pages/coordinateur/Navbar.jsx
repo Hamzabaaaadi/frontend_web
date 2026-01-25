@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { notificationsData } from "../../data/notifications";
 
 
 const defaultProfile = {
@@ -187,10 +186,7 @@ const Navbar = () => {
 			<div className="navbar-content">
 				<span className="role-badge-modern">Coordinateur</span>
 				<div className="navbar-actions">
-					<Link to="/chat" className="navbar-icon-modern" title="Chat">
-						<span role="img" aria-label="chat">💬</span>
-					</Link>
-					{/* Icône de notifications supprimée */}
+					{/* Chat icon removed */}
 					<div
 						className="user-avatar"
 						onClick={() => {
@@ -208,7 +204,6 @@ const Navbar = () => {
 				</div>
 			</div>
 
-			{/* Modale des notifications */}
 
 			{/* Modale du profil */}
 			{showProfile && (
