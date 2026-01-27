@@ -183,32 +183,40 @@ function normalizeArray(data) {
 
 export async function acceptDelegation(delegationId) {
   try {
-    const res = await axios.put(`${API}/api/delegations/${delegationId}/accepter`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/accepter`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.acceptDelegation fallback', err.message)
-    const idx = mockDelegations.findIndex(d => d.id === delegationId)
-    if (idx === -1) return simulate(null)
-    mockDelegations[idx].statut = 'ACCEPTEE'
-    mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
-    // perform the actual affectation transfer locally
-    const d = mockDelegations[idx]
-    await delegateAffectation(d.affectationOriginale, d.auditeurInitial, d.auditeurPropose)
-    return simulate(mockDelegations[idx])
+    console.error('affectationService.acceptDelegation error', err.response?.status, err.response?.data || err.message)
+    // keep local fallback behavior only if running without a backend
+    if (!API) {
+      const idx = mockDelegations.findIndex(d => d.id === delegationId)
+      if (idx === -1) return simulate(null)
+      mockDelegations[idx].statut = 'ACCEPTEE'
+      mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
+      const d = mockDelegations[idx]
+      await delegateAffectation(d.affectationOriginale, d.auditeurInitial, d.auditeurPropose)
+      return simulate(mockDelegations[idx])
+    }
+    throw err
   }
 }
 
 export async function refuseDelegation(delegationId) {
   try {
-    const res = await axios.put(`${API}/api/delegations/${delegationId}/refuser`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/refuser`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.refuseDelegation fallback', err.message)
-    const idx = mockDelegations.findIndex(d => d.id === delegationId)
-    if (idx === -1) return simulate(null)
-    mockDelegations[idx].statut = 'REFUSEE'
-    mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
-    return simulate(mockDelegations[idx])
+    console.error('affectationService.refuseDelegation error', err.response?.status, err.response?.data || err.message)
+    if (!API) {
+      const idx = mockDelegations.findIndex(d => d.id === delegationId)
+      if (idx === -1) return simulate(null)
+      mockDelegations[idx].statut = 'REFUSEE'
+      mockDelegations[idx].dateReponse = new Date().toISOString().split('T')[0]
+      return simulate(mockDelegations[idx])
+    }
+    throw err
   }
 }
 
