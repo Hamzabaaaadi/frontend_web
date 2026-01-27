@@ -99,10 +99,11 @@ export async function completeTask(id) {
   try {
     const axios = (await import('axios')).default
     const API = import.meta.env.VITE_API_URL
-    const r = await axios.post(`${API}/api/tasks/${id}/complete`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const r = await axios.post(`${API}/api/tasks/${id}/complete`, null, { headers })
     return r.data
   } catch (err) {
-    console.warn('tacheService.completeTask fallback', err.message)
-    return new Promise((resolve) => setTimeout(() => resolve({ success: true }), 300))
+    console.error('tacheService.completeTask error', err.response?.status, err.response?.data || err.message)
+    throw err
   }
 }
