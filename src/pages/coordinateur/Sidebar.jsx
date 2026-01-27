@@ -196,7 +196,7 @@ const Sidebar = () => {
 								</div>
 								<div style={{ marginTop: 6 }}>{n.message || '-'}</div>
 								<div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-									{!n.estLue && <button className="btn-ghost" onClick={async () => { try { const token = localStorage.getItem('basicAuth'); const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }; const API = import.meta.env.VITE_API_URL; await axios.put(`${API}/api/notifications/${n._id || n.id}/read`, null, { headers }); setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x)); setUnreadCount(c => Math.max(0, c - 1)); } catch (e) { console.error(e) } }}>Marquer comme lu</button>}
+									{!n.estLue && <button className="btn-ghost" onClick={async () => { try { const token = localStorage.getItem('basicAuth'); const headers = token ? { Authorization: `Basic ${token}` } : {}; const API = import.meta.env.VITE_API_URL; await axios.put(`${API}/api/notifications/${n._id || n.id}/read`, null, { headers }); setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x)); setUnreadCount(c => Math.max(0, c - 1)); } catch (e) { console.error('mark notification read error', e.response?.status, e.response?.data || e.message); const server = e?.response?.data?.message || e?.response?.data || e?.message || 'Erreur'; alert(`Erreur: ${typeof server === 'string' ? server : JSON.stringify(server)}`); } }}>Marquer comme lu</button>}
 								</div>
 							</div>
 						))}

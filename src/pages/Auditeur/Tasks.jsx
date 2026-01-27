@@ -586,12 +586,12 @@ export default function Tasks() {
                   {!n.estLue && <button className="btn-ghost" onClick={async () => {
                     try {
                       const token = localStorage.getItem('basicAuth')
-                      const headers = token ? { Authorization: `Basic ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+                      const headers = token ? { Authorization: `Basic ${token}` } : {}
                       const API = import.meta.env.VITE_API_URL
                       await axios.put(`${API}/api/notifications/${n._id || n.id}/read`, null, { headers })
-                    } catch (e) { console.error(e) }
-                    // local update
-                    setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x))
+                      // local update
+                      setNotifications(prev => prev.map(x => x === n ? ({ ...x, estLue: true }) : x))
+                    } catch (e) { console.error('mark notification read error', e.response?.status, e.response?.data || e.message); const server = e?.response?.data?.message || e?.response?.data || e?.message || 'Erreur'; alert(`Erreur: ${typeof server === 'string' ? server : JSON.stringify(server)}`) }
                   }}>Marquer comme lue</button>}
                   {n.destinationId && <button className="btn-ghost" onClick={() => { setNotifOpen(false); /* optionally navigate to related item */ }}>{'Voir'}</button>}
                 </div>
