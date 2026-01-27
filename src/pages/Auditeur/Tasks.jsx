@@ -321,7 +321,9 @@ export default function Tasks() {
       closeModal()
     } catch (err) {
       console.error(err)
-      alert('Erreur lors de l\'opération')
+      // try to extract a helpful server message
+      const serverMsg = err?.response?.data?.message || err?.response?.data || err?.message || 'Erreur'
+      alert(`Erreur lors de l'opération : ${typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg)}`)
     } finally {
       setActionLoading(null)
     }

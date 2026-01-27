@@ -14,21 +14,24 @@ const API = import.meta.env.VITE_API_URL
 
 export async function acceptAffectation(affectationId) {
   try {
-    const res = await axios.put(`${API}/api/affectations/${affectationId}/accept`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    // do not set Content-Type when no body is sent (some servers reject a JSON content-type with empty body)
+    const res = await axios.put(`${API}/api/affectations/${affectationId}/accept`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.accept fallback', err.message)
-    return simulate({ success: true, id: affectationId })
+    console.error('affectationService.accept error', err.response?.status, err.response?.data || err.message)
+    throw err
   }
 }
 
 export async function refuseAffectation(affectationId, motif = '') {
   try {
-    const res = await axios.put(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { 'Content-Type': 'application/json', ...authHeaders() }
+    const res = await axios.put(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.refuse fallback', err.message)
-    return simulate({ success: true, id: affectationId })
+    console.error('affectationService.refuse error', err.response?.status, err.response?.data || err.message)
+    throw err
   }
 }
 
