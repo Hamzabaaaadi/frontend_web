@@ -395,7 +395,8 @@ export default function Tasks() {
                 <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
                 <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
                 {t.statut === 'ACCEPTEE' && (
-                  null
+                                    <button className="btn" style={{ background: '#eef2ff', color: '#1e40af' }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
+
                 )}
               </div>
           </article>
