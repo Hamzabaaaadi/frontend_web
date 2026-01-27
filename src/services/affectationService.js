@@ -221,28 +221,35 @@ export async function refuseDelegation(delegationId) {
 }
 
 export async function deleteDelegation(delegationId) {
-  const headers = { 'Content-Type': 'application/json', ...authHeaders() }
+  const headers = { ...authHeaders() }
   try {
     const res = await axios.delete(`${API}/api/delegations/${delegationId}`, { headers })
     if (res.status === 204) return { success: true, id: delegationId }
     return res.data || { success: true, id: delegationId }
   } catch (err) {
-    console.warn('affectationService.deleteDelegation fallback', err.message)
-    const idx = mockDelegations.findIndex(d => d.id === delegationId)
-    if (idx !== -1) mockDelegations.splice(idx, 1)
-    return simulate({ success: true, id: delegationId })
+    console.error('affectationService.deleteDelegation error', err.response?.status, err.response?.data || err.message)
+    if (!API) {
+      const idx = mockDelegations.findIndex(d => d.id === delegationId)
+      if (idx !== -1) mockDelegations.splice(idx, 1)
+      return simulate({ success: true, id: delegationId })
+    }
+    throw err
   }
 }
 
 export async function modifyDelegation(delegationId, payload) {
   try {
-    const res = await axios.put(`${API}/api/delegations/${delegationId}/modifier`, payload, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { 'Content-Type': 'application/json', ...authHeaders() }
+    const res = await axios.put(`${API}/api/delegations/${delegationId}/modifier`, payload, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.modifyDelegation fallback', err.message)
-    const idx = mockDelegations.findIndex(d => d.id === delegationId)
-    if (idx !== -1) mockDelegations[idx] = { ...mockDelegations[idx], ...payload }
-    return simulate(mockDelegations[idx] || null)
+    console.error('affectationService.modifyDelegation error', err.response?.status, err.response?.data || err.message)
+    if (!API) {
+      const idx = mockDelegations.findIndex(d => d.id === delegationId)
+      if (idx !== -1) mockDelegations[idx] = { ...mockDelegations[idx], ...payload }
+      return simulate(mockDelegations[idx] || null)
+    }
+    throw err
   }
 }
 

@@ -86,7 +86,8 @@ export default function Delegations() {
       setModalOpen(false)
     } catch (e) {
       console.error(e)
-      alert('Erreur modification')
+      const server = e?.response?.data?.message || e?.response?.data || e?.message || 'Erreur'
+      alert(`Erreur modification: ${typeof server === 'string' ? server : JSON.stringify(server)}`)
     } finally { setActionLoading(null) }
   }
 
@@ -103,7 +104,8 @@ export default function Delegations() {
       await load()
     } catch (e) {
       console.error(e)
-      alert('Erreur suppression')
+      const server = e?.response?.data?.message || e?.response?.data || e?.message || 'Erreur'
+      alert(`Erreur suppression: ${typeof server === 'string' ? server : JSON.stringify(server)}`)
     } finally { setActionLoading(null); setConfirmDeleteId(null) }
   }
 
