@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from 'axios'
 import { Link, useLocation } from "react-router-dom";
 import Modal from '../../components/common/Modal'
-import UserMultiSelect from '../../components/common/UserMultiSelect'
+import UserMultiOptionSelect from '../../components/common/UserMultiOptionSelect'
 
 const navItems = [
 	{ label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
@@ -233,7 +233,7 @@ const Sidebar = () => {
 			}} confirmText={createLoading ? 'Envoi…' : 'Envoyer'}>
 				   <div style={{ display: 'grid', gap: 8 }}>
 					   <label>Destinataire(s)</label>
-					   <UserMultiSelect
+					   <UserMultiOptionSelect
 						   users={users}
 						   value={Array.isArray(createForm.destinataire) ? createForm.destinataire : []}
 						   onChange={arr => setCreateForm(f => ({ ...f, destinataire: arr }))}
