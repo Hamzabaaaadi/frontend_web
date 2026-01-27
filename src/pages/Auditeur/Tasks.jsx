@@ -5,6 +5,8 @@ import { getTasks, getTaskById, completeTask } from '../../services/tacheService
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
+import Chat from '../../components/Chat'
+
 
 const cardStyle = {
   background: '#fff',
@@ -561,8 +563,11 @@ export default function Tasks() {
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
           </div>
         )}
-        {/* chat modal removed */}
-      </Modal>
+ {modalType === 'chat' && (
+          <div>
+            <Chat taskId={modalTaskId} currentUser={modalFromInput} />
+          </div>
+        )}      </Modal>
 
       {/* Notifications modal */}
       <Modal
