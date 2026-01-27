@@ -39,7 +39,6 @@ function extractId(raw) {
 
 const mockTasks = [
   {
-    id: 't1',
     name: 'Formation méthodologique audit',
     description: 'Formation sur les méthodologies d\'audit pédagogique',
     type: 'Formation',
@@ -66,7 +65,7 @@ const mockAffectations = [
 
 export async function getTasks() {
   try {
-    const r = await axios.get(`${API}/api/tasks`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/tasks`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('cordinateurServices.getTasks fallback', err.message)
@@ -76,7 +75,7 @@ export async function getTasks() {
 
 export async function getTaskById(id) {
   try {
-    const r = await axios.get(`${API}/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/tasks/${id}`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('cordinateurServices.getTaskById fallback', err.message)
@@ -187,7 +186,7 @@ export async function deleteTask(id) {
 
 export async function getAffectations() {
   try {
-    const r = await axios.get(`${API}/api/affectations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/affectations/me`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('cordinateurServices.getAffectations fallback', err.message)
@@ -197,7 +196,7 @@ export async function getAffectations() {
 
 export async function getAuditeurs() {
   try {
-    const r = await axios.get(`${API}/api/auditeurs`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/auditeurs`, { headers: { ...authHeaders() } })
     const data = r.data
     const arr = Array.isArray(data) ? data : (data && Array.isArray(data.auditeurs) ? data.auditeurs : (data && Array.isArray(data.users) ? data.users : []))
     // normalize similar to userService
@@ -221,7 +220,7 @@ export async function getSemiAutoProposals(taskId) {
   try {
     const url = `${API}/api/semiauto/propose/${taskId}`
     console.debug('[cordinateurServices] GET', url)
-    const r = await axios.get(url, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(url, { headers: { ...authHeaders() } })
     const data = r.data
     console.debug('[cordinateurServices] response', data)
 
@@ -392,31 +391,39 @@ export async function assignTask(taskId, auditeurId, modeText = 'Manuel') {
 
 export async function validateAffectation(affectationId) {
   try {
-    const r = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const r = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers })
     return r.data
   } catch (err) {
-    console.warn('cordinateurServices.validateAffectation fallback', err.message)
+    console.error('cordinateurServices.validateAffectation error', err.response?.status, err.response?.data || err.message)
     const idx = mockAffectations.findIndex(a => a.id === affectationId)
-    if (idx !== -1) { mockAffectations[idx].statut = 'ACCEPTEE' }
-    return new Promise((res) => setTimeout(() => res(mockAffectations[idx] || null), 200))
+    if (!API) {
+      if (idx !== -1) { mockAffectations[idx].statut = 'ACCEPTEE' }
+      return new Promise((res) => setTimeout(() => res(mockAffectations[idx] || null), 200))
+    }
+    throw err
   }
 }
 
 export async function refuseAffectation(affectationId, motif = '') {
   try {
-    const r = await axios.post(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const r = await axios.post(`${API}/api/affectations/${affectationId}/refuse`, { motif }, { headers })
     return r.data
   } catch (err) {
-    console.warn('cordinateurServices.refuseAffectation fallback', err.message)
+    console.error('cordinateurServices.refuseAffectation error', err.response?.status, err.response?.data || err.message)
     const idx = mockAffectations.findIndex(a => a.id === affectationId)
-    if (idx !== -1) { mockAffectations[idx].statut = 'REFUSEE' }
-    return new Promise((res) => setTimeout(() => res(mockAffectations[idx] || null), 200))
+    if (!API) {
+      if (idx !== -1) { mockAffectations[idx].statut = 'REFUSEE' }
+      return new Promise((res) => setTimeout(() => res(mockAffectations[idx] || null), 200))
+    }
+    throw err
   }
 }
 
 export async function getSuggestions(taskId) {
   try {
-    const r = await axios.get(`${API}/api/taches/${taskId}/suggestions`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/taches/${taskId}/suggestions`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('cordinateurServices.getSuggestions fallback', err.message)

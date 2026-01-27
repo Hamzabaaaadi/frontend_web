@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import * as svc from '../../services/superAdminService'
+import axios from 'axios'
 import * as tsvc from '../../services/tacheService'
 import './dashboard.css'
 
@@ -27,7 +28,7 @@ export default function SuperAdminDashboard() {
         let delegations = []
         try {
           const basic = localStorage.getItem('basicAuth')
-          const headers = { 'Content-Type': 'application/json' }
+          const headers = {}
           if (basic) headers.Authorization = `Basic ${basic}`
           const API = import.meta.env.VITE_API_URL
           try {

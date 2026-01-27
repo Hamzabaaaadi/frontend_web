@@ -36,7 +36,7 @@ function normalizeAuditeur(u) {
 
 export async function getAuditeurs() {
   try {
-    const res = await axios.get(`${API}/api/users/auditeurs`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/users/auditeurs`, { headers: { ...authHeaders() } })
     const data = res.data
     const auditeurs = Array.isArray(data.auditeurs) ? data.auditeurs : (Array.isArray(data) ? data : [])
     return auditeurs.map(normalizeAuditeur)

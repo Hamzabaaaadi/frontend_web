@@ -128,7 +128,7 @@ const Navbar = () => {
 				const token = localStorage.getItem('basicAuth');
 				const headers = token ? { Authorization: `Basic ${token}` } : {};
 				const API = import.meta.env.VITE_API_URL
-				const res = await axios.get(`${API}/api/users/me`, { headers: { 'Content-Type': 'application/json', ...headers } })
+				const res = await axios.get(`${API}/api/users/me`, { headers: { ...headers } })
 				const data = res.data
 				const u = data.user || data;
 				const name = `${u.prenom || ''} ${u.nom || ''}`.trim() || u.email || profile.name;

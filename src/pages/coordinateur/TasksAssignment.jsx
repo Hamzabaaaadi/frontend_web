@@ -402,7 +402,8 @@ const TasksAssignment = () => {
         alert('Affectation validée par le coordinateur !')
       } catch (err) {
         console.error('validateAffectation error', err)
-        alert('Erreur lors de la validation')
+        const server = err?.response?.data?.message || err?.response?.data || err?.message || 'Erreur'
+        alert(`Erreur lors de la validation: ${typeof server === 'string' ? server : JSON.stringify(server)}`)
       }
     })()
   };
@@ -418,7 +419,8 @@ const TasksAssignment = () => {
         alert('Affectation rejetée !')
       } catch (err) {
         console.error('rejectAffectation error', err)
-        alert('Erreur lors du rejet')
+        const server = err?.response?.data?.message || err?.response?.data || err?.message || 'Erreur'
+        alert(`Erreur lors du rejet: ${typeof server === 'string' ? server : JSON.stringify(server)}`)
       }
     })()
   };

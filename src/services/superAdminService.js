@@ -27,7 +27,7 @@ const API = import.meta.env.VITE_API_URL
 
 export async function listUsers() {
   try {
-    const r = await axios.get(`${API}/api/users/all`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/users/all`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('superAdminService.listUsers fallback to mock', err.message)
@@ -83,7 +83,7 @@ export async function deleteUser(id) {
 
 export async function listVehicles() {
   try {
-    const r = await axios.get(`${API}/api/vehicles`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const r = await axios.get(`${API}/api/vehicles`, { headers: { ...authHeaders() } })
     return r.data
   } catch (err) {
     console.warn('superAdminService.listVehicles fallback to mock', err.message)

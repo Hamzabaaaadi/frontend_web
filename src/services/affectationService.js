@@ -115,7 +115,7 @@ const mockDelegations = [
 
 export async function getAffectations() {
   try {
-    const res = await axios.get(`${API}/api/affectations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/affectations/me`, { headers: { ...authHeaders() } })
     return res.data
   } catch (err) {
     console.warn('affectationService.getAffectations fallback', err.message);
@@ -124,7 +124,7 @@ export async function getAffectations() {
 }
 export async function getAllAffectations() {
   try {
-    const res = await axios.get(`${API}/api/affectations`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/affectations`, { headers: { ...authHeaders() } })
     return res.data
   } catch (err) {
     console.warn('affectationService.getAffectations fallback', err.message);
@@ -134,17 +134,19 @@ export async function getAllAffectations() {
 
 export async function validateAffectation(affectationId) {
   try {
-    const res = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const res = await axios.post(`${API}/api/affectations/${affectationId}/validate`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.validate fallback', err.message)
-    return simulate({ success: true, id: affectationId })
+    console.error('affectationService.validate error', err.response?.status, err.response?.data || err.message)
+    if (!API) return simulate({ success: true, id: affectationId })
+    throw err
   }
 }
 
 export async function getDelegations() {
   try {
-    const res = await axios.get(`${API}/api/delegations/me`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/delegations/me`, { headers: { ...authHeaders() } })
     const data = res.data
     return normalizeArray(data)
   } catch (err) {
@@ -156,7 +158,7 @@ export async function getDelegations() {
 // get delegations proposed by the currently connected auditeur (propres)
 export async function getMyDelegationsPropres() {
   try {
-    const res = await axios.get(`${API}/api/delegations/me/propres`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/delegations/me/propres`, { headers: { ...authHeaders() } })
     const data = res.data
     return normalizeArray(data)
   } catch (err) {
@@ -255,7 +257,7 @@ export async function modifyDelegation(delegationId, payload) {
 
 export async function deleteAffectation(affectationId) {
   try {
-    const res = await axios.delete(`${API}/api/affectations/${affectationId}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.delete(`${API}/api/affectations/${affectationId}`, { headers: { ...authHeaders() } })
     return res.data
   } catch (err) {
     console.warn('affectationService.deleteAffectation fallback', err.message);
@@ -278,21 +280,25 @@ export async function updateAffectation(affectationId, payload) {
 
 export async function validateAffectationStatus(affectationId) {
   try {
-    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/validate`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/validate`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.validateAffectationStatus fallback', err.message);
-    return simulate({ success: true, id: affectationId });
+    console.error('affectationService.validateAffectationStatus error', err.response?.status, err.response?.data || err.message)
+    if (!API) return simulate({ success: true, id: affectationId })
+    throw err
   }
 }
 
 export async function rejectAffectationStatus(affectationId) {
   try {
-    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/reject`, null, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const headers = { ...authHeaders() }
+    const res = await axios.post(`${API}/api/tasks/affectation/${affectationId}/reject`, null, { headers })
     return res.data
   } catch (err) {
-    console.warn('affectationService.rejectAffectationStatus fallback', err.message);
-    return simulate({ success: true, id: affectationId });
+    console.error('affectationService.rejectAffectationStatus error', err.response?.status, err.response?.data || err.message)
+    if (!API) return simulate({ success: true, id: affectationId })
+    throw err
   }
 }
 

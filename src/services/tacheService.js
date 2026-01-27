@@ -41,7 +41,7 @@ export async function getTasks() {
   try {
     const axios = (await import('axios')).default
     const API = import.meta.env.VITE_API_URL
-    const res = await axios.get(`${API}/api/tasks`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/tasks`, { headers: { ...authHeaders() } })
     const data = res.data
     // Normalize to an array of tasks
     let list = []
@@ -76,7 +76,7 @@ export async function getTaskById(id) {
   try {
     const axios = (await import('axios')).default
     const API = import.meta.env.VITE_API_URL
-    const res = await axios.get(`${API}/api/tasks/${id}`, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+    const res = await axios.get(`${API}/api/tasks/${id}`, { headers: { ...authHeaders() } })
     const data = res.data
     return data
   
