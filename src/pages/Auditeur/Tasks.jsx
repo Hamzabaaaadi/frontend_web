@@ -420,10 +420,16 @@ export default function Tasks() {
             ? 'Déléguer la tâche'
             : modalType === 'complete'
             ? 'Confirmer terminaison'
+            : modalType === 'chat'           // ← AJOUTER CETTE LIGNE
+            ? 'Discussion'        
             : 'Détails tâche'
         }
         onCancel={closeModal}
-        onConfirm={modalType === 'details' ? closeModal : handleConfirmModal}
+        onConfirm={
+                modalType === 'details' || modalType === 'chat'  // ← MODIFIER CETTE LIGNE
+                  ? closeModal 
+                  : handleConfirmModal
+              }
         confirmText={
           modalType === 'accept' || modalType === 'acceptDelegation'
             ? 'Accepter'
@@ -433,6 +439,8 @@ export default function Tasks() {
             ? 'Déléguer'
             : modalType === 'complete'
             ? 'Terminer'
+            : modalType === 'chat'           // ← AJOUTER CETTE LIGNE
+            ? 'Fermer'   
             : 'Fermer'
         }
       >
