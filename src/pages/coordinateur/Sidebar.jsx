@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from 'axios'
 import { Link, useLocation } from "react-router-dom";
 import Modal from '../../components/common/Modal'
-import UserSelect from '../../components/common/UserSelect'
+import UserMultiSelect from '../../components/common/UserMultiSelect'
 
 const navItems = [
 	{ label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
@@ -161,25 +161,25 @@ const Sidebar = () => {
 				</ul>
 
 				<div style={{ padding: '12px 14px' }}>
-					<div style={{ display: 'flex', gap: 8 }}>
-						<button
-							onClick={async () => { setNotifOpen(true); await loadNotifications() }}
-							title="Voir notifications"
-							style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid #eef2f7', background: '#fff', cursor: 'pointer' }}
-						>
-							<span style={{ fontSize: 18 }}>🔔</span>
-							<span style={{ fontWeight: 600 }}>Notifications</span>
-							{unreadCount > 0 && <span style={{ marginLeft: 8, background: '#ef4444', color: '#fff', borderRadius: 999, padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>{unreadCount}</span>}
-						</button>
-						<button
-							onClick={() => setCreateOpen(true)}
-							title="Créer notification"
-							style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid #e6f0ff', background: '#fff', cursor: 'pointer' }}
-						>
-							<span style={{ fontSize: 18 }}>✉️</span>
-							<span style={{ fontWeight: 600 }}>Créer</span>
-						</button>
-					</div>
+					   <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
+						   <button
+							   onClick={async () => { setNotifOpen(true); await loadNotifications() }}
+							   title="Voir notifications"
+							   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, border: '1.5px solid #e0e7ef', background: '#f8fafc', cursor: 'pointer', fontWeight: 600, fontSize: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+						   >
+							   <span style={{ fontSize: 20 }}>🔔</span>
+							   <span>Notifications</span>
+							   {unreadCount > 0 && <span style={{ marginLeft: 8, background: '#ef4444', color: '#fff', borderRadius: 999, padding: '2px 8px', fontSize: 13, fontWeight: 700 }}>{unreadCount}</span>}
+						   </button>
+						   <button
+							   onClick={() => setCreateOpen(true)}
+							   title="Créer notification"
+							   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, border: '1.5px solid #bae6fd', background: '#f0f9ff', cursor: 'pointer', fontWeight: 600, fontSize: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+						   >
+							   <span style={{ fontSize: 20 }}>✉️</span>
+							   <span>Créer</span>
+						   </button>
+					   </div>
 				</div>
 			</nav>
 
@@ -233,7 +233,7 @@ const Sidebar = () => {
 			}} confirmText={createLoading ? 'Envoi…' : 'Envoyer'}>
 				   <div style={{ display: 'grid', gap: 8 }}>
 					   <label>Destinataire(s)</label>
-					   <UserSelect
+					   <UserMultiSelect
 						   users={users}
 						   value={Array.isArray(createForm.destinataire) ? createForm.destinataire : []}
 						   onChange={arr => setCreateForm(f => ({ ...f, destinataire: arr }))}
