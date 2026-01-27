@@ -13,7 +13,7 @@ export default function MessageList({ messages = [], loading, currentUser }) {
       {messages.length === 0 && <div className="muted">Aucun message</div>}
       {messages.map((m) => {
         // Get author display name
-        const author = m.from || (m.expediteurId && (typeof m.expediteurId === 'object' ? ( `${m.expediteur.nom} ${m.expediteur.prenom}` : m.expediteur._id) : m.expediteur)) || 'inconnu';
+        const author = (m.expediteur ? (typeof m.expediteur === 'object' ? `${m.expediteur.nom} ${m.expediteur.prenom}` : m.expediteur) : 'inconnu');
         const text = m.text || m.contenu || '';
         const date = m.createdAt || m.dateEnvoi || m.date || '';
         const read = typeof m.read !== 'undefined' ? m.read : (typeof m.estLu !== 'undefined' ? m.estLu : false);
