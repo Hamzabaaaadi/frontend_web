@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from 'axios'
 import { Link, useLocation } from "react-router-dom";
 import Modal from '../../components/common/Modal'
+import UserSelect from '../../components/common/UserSelect'
 
 const navItems = [
 	{ label: "📊 Tableau de bord", to: "/dashboard", icon: "📊" },
@@ -230,31 +231,13 @@ const Sidebar = () => {
 					await loadNotifications();
 				} catch (e) { console.error(e); alert('Erreur lors de la création de la notification'); } finally { setCreateLoading(false); }
 			}} confirmText={createLoading ? 'Envoi…' : 'Envoyer'}>
-				<div style={{ display: 'grid', gap: 8 }}>
-					<label>Destinataire(s)</label>
-					<div style={{ maxHeight: 120, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4, padding: 4 }}>
-						{users.map(user => (
-							<label key={user._id || user.id} style={{ display: 'block', marginBottom: 4 }}>
-								<input
-									type="checkbox"
-									value={user._id || user.id}
-									checked={Array.isArray(createForm.destinataire) ? createForm.destinataire.includes(user._id || user.id) : false}
-									onChange={e => {
-										const val = user._id || user.id;
-										setCreateForm(f => {
-											let arr = Array.isArray(f.destinataire) ? [...f.destinataire] : [];
-											if (e.target.checked) {
-												if (!arr.includes(val)) arr.push(val);
-											} else {
-												arr = arr.filter(id => id !== val);
-											}
-											return { ...f, destinataire: arr };
-										});
-									}}
-								/> {user.nom} {user.prenom}
-							</label>
-						))}
-					</div>
+				   <div style={{ display: 'grid', gap: 8 }}>
+					   <label>Destinataire(s)</label>
+					   <UserSelect
+						   users={users}
+						   value={Array.isArray(createForm.destinataire) ? createForm.destinataire : []}
+						   onChange={arr => setCreateForm(f => ({ ...f, destinataire: arr }))}
+					   />
 					<label>Type</label>
 					<select value={createForm.type} onChange={e => setCreateForm(f => ({ ...f, type: e.target.value }))}>
 						<option value="AFFECTATION">AFFECTATION</option>
