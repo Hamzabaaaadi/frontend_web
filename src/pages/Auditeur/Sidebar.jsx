@@ -1,4 +1,4 @@
-import UserMultiSelect from '../../components/common/UserMultiSelect'
+import UserMultiOptionSelect from '../../components/common/UserMultiOptionSelect'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import Modal from '../../components/common/Modal'
@@ -121,7 +121,7 @@ export default function Sidebar() {
       <Modal isOpen={createOpen} title="Créer une notification" onCancel={() => setCreateOpen(false)} onConfirm={handleCreateNotification} confirmText={createLoading ? 'Envoi…' : 'Envoyer'}>
         <div style={{ display: 'grid', gap: 8 }}>
           <label>Destinataire(s)</label>
-          <UserMultiSelect
+          <UserMultiOptionSelect
             users={users}
             value={Array.isArray(createForm.destinataire) ? createForm.destinataire : []}
             onChange={arr => setCreateForm(f => ({ ...f, destinataire: arr }))}
