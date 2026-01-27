@@ -1,10 +1,11 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 import './Modal.css'
 
 export default function Modal({ isOpen, title, children, onCancel, onConfirm, confirmText = 'Confirmer' }) {
   if (!isOpen) return null
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-box">
         <div className="modal-header">
@@ -21,4 +22,6 @@ export default function Modal({ isOpen, title, children, onCancel, onConfirm, co
       </div>
     </div>
   )
+
+  return ReactDOM.createPortal(modalContent, document.body)
 }
