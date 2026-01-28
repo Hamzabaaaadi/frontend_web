@@ -178,6 +178,7 @@ const Navbar = () => {
 			{/* Modale du profil */}
 			{showProfile && (
 				<div className="profile-modal">
+				  <div className="profile-modal-box">
 					{editMode ? (
 						<form className="profile-form" onSubmit={handleSaveProfile}>
 							<h3 className="profile-title">Modifier le profil</h3>
@@ -286,6 +287,7 @@ const Navbar = () => {
 							</div>
 						</div>
 					)}
+				  </div>
 				</div>
 			)}
 		</div>

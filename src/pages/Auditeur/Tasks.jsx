@@ -5,6 +5,8 @@ import { getTasks, getTaskById, completeTask } from '../../services/tacheService
 import { getAffectations, acceptAffectation, refuseAffectation, delegateAffectation, createDelegation, getDelegations, acceptDelegation, refuseDelegation } from '../../services/affectationService'
 import { getAuditeurs } from '../../services/userService'
 import Modal from '../../components/common/Modal'
+import Chat from '../../components/chat/Chat'
+
 
 const cardStyle = {
   background: '#fff',
@@ -395,7 +397,8 @@ export default function Tasks() {
                 <button className="btn danger" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openModal('refuse', t.id); }}>{actionLoading === t.id ? '…' : 'Refuser'}</button>
                 <button className="btn warn" disabled={actionLoading === t.id} onClick={(e) => { e.stopPropagation(); openDelegateModal(t.id); }}>{actionLoading === t.id ? '…' : 'Déléguer'}</button>
                 {t.statut === 'ACCEPTEE' && (
-                  null
+                                    <button className="btn" style={{ background: '#eef2ff', color: '#1e40af' }} onClick={(e) => { e.stopPropagation(); setModalFromInput(audIdVal || ''); setModalTaskId(tacheIdVal || t.id); setModalType('chat'); setModalOpen(true); }}>Discussion</button>
+
                 )}
               </div>
           </article>
@@ -417,10 +420,16 @@ export default function Tasks() {
             ? 'Déléguer la tâche'
             : modalType === 'complete'
             ? 'Confirmer terminaison'
+            : modalType === 'chat'           // ← AJOUTER CETTE LIGNE
+            ? 'Discussion'        
             : 'Détails tâche'
         }
         onCancel={closeModal}
-        onConfirm={modalType === 'details' ? closeModal : handleConfirmModal}
+        onConfirm={
+                modalType === 'details' || modalType === 'chat'  // ← MODIFIER CETTE LIGNE
+                  ? closeModal 
+                  : handleConfirmModal
+              }
         confirmText={
           modalType === 'accept' || modalType === 'acceptDelegation'
             ? 'Accepter'
@@ -430,6 +439,8 @@ export default function Tasks() {
             ? 'Déléguer'
             : modalType === 'complete'
             ? 'Terminer'
+            : modalType === 'chat'           // ← AJOUTER CETTE LIGNE
+            ? 'Fermer'   
             : 'Fermer'
         }
       >
@@ -560,8 +571,11 @@ export default function Tasks() {
             {!taskDetailsLoading && !taskDetails && <div>Détails non trouvés pour cette tâche.</div>}
           </div>
         )}
-        {/* chat modal removed */}
-      </Modal>
+ {modalType === 'chat' && (
+          <div>
+            <Chat taskId={modalTaskId} currentUser={modalFromInput} />
+          </div>
+        )}      </Modal>
 
       {/* Notifications modal */}
       <Modal
