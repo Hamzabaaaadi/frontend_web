@@ -225,7 +225,7 @@ export async function refuseDelegation(delegationId) {
 export async function deleteDelegation(delegationId) {
   const headers = { ...authHeaders() }
   try {
-    const res = await axios.delete(`${API}/api/delegations/${delegationId}`, { headers })
+    const res = await axios.delete(`${API}/api/delegations/${delegationId}/supprimer`, { headers })
     if (res.status === 204) return { success: true, id: delegationId }
     return res.data || { success: true, id: delegationId }
   } catch (err) {
