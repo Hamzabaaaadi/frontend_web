@@ -119,6 +119,32 @@ export async function createTask(payload) {
       }
     }
     console.debug('cordinateurServices.createTask payload', payloadNormalized)
+
+    // If a File object was provided for fichierAdministratif, send multipart/form-data
+    const file = payloadNormalized.fichierAdministratif
+    if (file && (typeof File !== 'undefined' && file instanceof File || (file && typeof file.size === 'number' && file.name))) {
+      const formData = new FormData()
+      // append file under the exact field name expected by backend: `file`
+      formData.append('file', file)
+      // append other fields as strings
+      Object.keys(payloadNormalized).forEach((k) => {
+        if (k === 'fichierAdministratif') return
+        const v = payloadNormalized[k]
+        if (v === null || typeof v === 'undefined') return
+        if (Array.isArray(v)) {
+          // append arrays as JSON strings
+          formData.append(k, JSON.stringify(v))
+        } else if (typeof v === 'object') {
+          formData.append(k, JSON.stringify(v))
+        } else {
+          formData.append(k, String(v))
+        }
+      })
+
+      const r = await axios.post(`${API}/api/tasks`, formData, { headers: { ...authHeaders() } })
+      return r.data
+    }
+
     const r = await axios.post(`${API}/api/tasks`, payloadNormalized, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     return r.data
   } catch (err) {
@@ -162,6 +188,25 @@ export async function updateTask(id, payload) {
         else payloadNormalized.direction = 'RABAT_CASA'
       }
     }
+    // If payload contains a File for fichierAdministratif, first PUT other fields, then upload the file
+    const file = payloadNormalized.fichierAdministratif
+    if (file && (typeof File !== 'undefined' && file instanceof File || (file && typeof file.size === 'number' && file.name))) {
+      // remove file from JSON body
+      const { fichierAdministratif, ...rest } = payloadNormalized
+      // send other fields via PUT
+      const r1 = await axios.put(`${API}/api/tasks/${id}`, rest, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
+      // upload file to dedicated endpoint
+      try {
+        const r2 = await uploadTaskFile(id, file)
+        // prefer server response containing updated tache
+        return r2 || r1.data
+      } catch (e) {
+        // if file upload fails, return the update response and log
+        console.warn('file upload failed after update', e)
+        return r1.data
+      }
+    }
+
     const r = await axios.put(`${API}/api/tasks/${id}`, payloadNormalized, { headers: { 'Content-Type': 'application/json', ...authHeaders() } })
     return r.data
   } catch (err) {
@@ -169,6 +214,18 @@ export async function updateTask(id, payload) {
     const idx = mockTasks.findIndex(t => t.id === id)
     if (idx !== -1) mockTasks[idx] = { ...mockTasks[idx], ...payload }
     return new Promise((res) => setTimeout(() => res(mockTasks[idx] || null), 200))
+  }
+}
+
+export async function uploadTaskFile(id, file) {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const r = await axios.post(`${API}/api/tasks/${id}/file`, formData, { headers: { ...authHeaders() } })
+    return r.data
+  } catch (err) {
+    console.error('uploadTaskFile failed', err)
+    throw err
   }
 }
 

@@ -456,6 +456,27 @@ const TaskForm = ({ onSubmit, initialData, onCancel, isEditing }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Client-side validation for the file (max ~20MB and allowed MIME types)
+    const file = form.fichierAdministratif
+    if (file) {
+      const MAX = 20 * 1024 * 1024
+      if (file.size > MAX) {
+        alert('Le fichier est trop volumineux (max 20MB).')
+        return
+      }
+      const allowed = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword'
+      ]
+      const isImage = file.type && file.type.startsWith('image/')
+      if (!isImage && allowed.indexOf(file.type) === -1) {
+        alert('Type de fichier non supporté. Autorisé: PDF, DOCX, images.')
+        return
+      }
+    }
+
     const payload = {
       nom: form.nom,
       description: form.description,
@@ -468,10 +489,12 @@ const TaskForm = ({ onSubmit, initialData, onCancel, isEditing }) => {
       gradesConcernes: Array.isArray(form.gradesConcernes) ? form.gradesConcernes : [],
       necessiteVehicule: !!form.necessiteVehicule,
       direction: form.direction || null,
-      fichierAdministratif: form.fichierAdministratif ? form.fichierAdministratif.name : null,
+      // pass the actual File object to allow services to send multipart/form-data
+      fichierAdministratif: form.fichierAdministratif || null,
       nombrePlaces: Number(form.nombrePlaces) || 1,
       statut: form.statut || "CREEE",
     };
+
     onSubmit(payload);
     if (!isEditing) {
       setForm({

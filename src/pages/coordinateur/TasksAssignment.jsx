@@ -7,6 +7,7 @@ import Chat from '../../components/chat/Chat';
 // ...existing code...
 import * as coordSvc from '../../services/cordinateurServices'
 import * as userSvc from '../../services/userService'
+const API = import.meta.env.VITE_API_URL
 import { auditeursData } from '../../data/messages'
 
 
@@ -121,7 +122,17 @@ const TasksAssignment = () => {
       estRemuneree: typeof t.estRemuneree === 'boolean' ? t.estRemuneree : (t.paid || false),
       estCommune: typeof t.estCommune === 'boolean' ? t.estCommune : false,
       necessiteVehicule: typeof t.necessiteVehicule === 'boolean' ? t.necessiteVehicule : false,
-      fichierAdministratif: t.fichierAdministratif || t.file || null,
+      fichero: t.fichierAdministratif || t.file || null,
+      fichierAdministratif: (() => {
+        const raw = t.fichierAdministratif || t.file || null
+        if (!raw) return null
+        try {
+          const s = String(raw)
+          if (s.startsWith('http')) return s
+          if (API) return `${API.replace(/\/$/, '')}/uploads/${encodeURIComponent(s)}`
+          return s
+        } catch (e) { return raw }
+      })(),
       statut: t.statut || t.status || 'CREEE',
       affectations: Array.isArray(t.affectations) ? t.affectations : [],
       ...t,
