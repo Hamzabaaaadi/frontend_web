@@ -636,7 +636,7 @@ export default function Tasks() {
             </div>
             <div>
               {tasks
-                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE','TERMINEE','REFUSER'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
+                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE','TERMINEE','REFUSEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
                 .map((a, idx) => {
                   const isHovered = hoveredRow === a.id
                   const bg = isHovered ? '#f8fafc' : (idx % 2 === 0 ? '#ffffff' : '#fbfdff')
