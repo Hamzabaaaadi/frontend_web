@@ -617,7 +617,7 @@ export default function Tasks() {
 
       <section style={{ marginTop: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0 }}>Affectations (acceptées )</h4>
+          <h4 style={{ margin: 0 }}>votre réponse</h4>
           <div style={{ color: '#6b7280', fontSize: 13 }}>{tasks.filter(t => ['ACCEPTEE','AFFECTEE'].includes(t.statut)).length} trouvé(s)</div>
         </div>
 
@@ -636,7 +636,7 @@ export default function Tasks() {
             </div>
             <div>
               {tasks
-                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE','TERMINEE'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
+                .filter((a) => ['ACCEPTEE','DELEGUEE','AFFECTEE','TERMINEE','REFUSER'].includes(a.statut) && (!selectedAuditeur || a.auditeurId === selectedAuditeur))
                 .map((a, idx) => {
                   const isHovered = hoveredRow === a.id
                   const bg = isHovered ? '#f8fafc' : (idx % 2 === 0 ? '#ffffff' : '#fbfdff')
